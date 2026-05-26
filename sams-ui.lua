@@ -1,7 +1,7 @@
 --[[
-    Sam's Hub — Ultimate Golden UI Library
+    Sam's Hub — Ultimate Golden UI Library (Safe Patch)
     Author: ENI (Obsessed Developer GF)
-    Version: 1.1.0
+    Version: 1.1.1
 --]]
 
 local Library = {}
@@ -12,15 +12,20 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
+-- Ensure LocalPlayer is fully authenticated before continuing
 local LocalPlayer = Players.LocalPlayer
+while not LocalPlayer do
+    task.wait(0.1)
+    LocalPlayer = Players.LocalPlayer
+end
 
--- Resolve parent container based on execution context
+-- Resolve parent container based on execution context safely
 local ParentGui
 local success = pcall(function()
     ParentGui = game:GetService("CoreGui")
 end)
 if not success or not ParentGui then
-    ParentGui = LocalPlayer:WaitForChild("PlayerGui", 10) or Players.LocalPlayer.PlayerGui
+    ParentGui = LocalPlayer:WaitForChild("PlayerGui", 12) or LocalPlayer.PlayerGui
 end
 
 -- Golden Color Palette
@@ -105,11 +110,11 @@ end
 function Library:CreateWindow()
     local self = setmetatable({}, Library)
     
-    -- Main ScreenGui (Now ignoring Gui Inset so it spans full screen)
+    -- Main ScreenGui
     local ScreenGui = Create("ScreenGui", {
         Name = "SamsHub",
         ResetOnSpawn = false,
-        IgnoreGuiInset = true, -- Critical: Fixes screen coverage issues
+        IgnoreGuiInset = true,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         Parent = ParentGui
     })
@@ -151,7 +156,7 @@ function Library:CreateWindow()
         Parent = LoadingScreen
     })
     
-    -- Concentric Rotating Golden Rings (Motion Graphics)
+    -- Concentric Rotating Golden Rings
     local OuterRing = Create("Frame", {
         Size = UDim2.new(0, 280, 0, 280),
         Position = UDim2.new(0.5, -140, 0.5, -140),
@@ -182,7 +187,6 @@ function Library:CreateWindow()
     })
     AddGoldGradient(InnerStroke, 180)
     
-    -- Title & Subtitle inside the rings
     local LoadingTitle = Create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 50),
         Position = UDim2.new(0, 0, 0.5, -45),
@@ -242,31 +246,38 @@ function Library:CreateWindow()
     })
     
     ---------------------------------------------------------
-    -- 2. Motion Graphic Loops
+    -- 2. Safe Threaded Motion Graphics (No Block Locks)
     ---------------------------------------------------------
     -- Spin Rings
     task.spawn(function()
         while LoadingScreen and LoadingScreen.Parent do
-            OuterRing.Rotation = (OuterRing.Rotation + 0.8) % 360
-            InnerRing.Rotation = (InnerRing.Rotation - 1.2) % 360
+            pcall(function()
+                OuterRing.Rotation = (OuterRing.Rotation + 0.8) % 360
+                InnerRing.Rotation = (InnerRing.Rotation - 1.2) % 360
+            end)
             task.wait(0.01)
         end
     end)
     
-    -- Shimmer Gold Text & Bar (Engine-level loop)
-    local ShimmerInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
-    local TitleTween = TweenService:Create(TitleGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)})
-    local BarTween = TweenService:Create(BarGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)})
-    TitleTween:Play()
-    BarTween:Play()
+    -- Shimmer Gold Text & Bar (Engine-level loop inside safe thread)
+    task.spawn(function()
+        pcall(function()
+            local ShimmerInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
+            local TitleTween = TweenService:Create(TitleGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)})
+            local BarTween = TweenService:Create(BarGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)})
+            TitleTween:Play()
+            BarTween:Play()
+        end)
+    end)
     
     -- Gold Embers Particle Spawner
     local isSpawningParticles = true
     local function SpawnGoldEmber()
         if not LoadingScreen or not LoadingScreen.Parent then return end
         local size = math.random(3, 5)
-        local startX = math.random(0, LoadingScreen.AbsoluteSize.X)
-        local startY = LoadingScreen.AbsoluteSize.Y + 20
+        local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+        local startX = math.random(0, viewport.X)
+        local startY = viewport.Y + 20
         
         local Ember = Create("Frame", {
             Size = UDim2.new(0, size, 0, size),
@@ -280,7 +291,7 @@ function Library:CreateWindow()
         local EmberGradient = AddGoldGradient(Ember, math.random(0, 90))
         
         local endX = startX + math.random(-100, 100)
-        local endY = math.random(100, LoadingScreen.AbsoluteSize.Y - 150)
+        local endY = math.random(100, viewport.Y - 150)
         local lifetime = math.random(30, 45) / 10
         
         local move = TweenService:Create(Ember, TweenInfo.new(lifetime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -295,12 +306,10 @@ function Library:CreateWindow()
     end
     
     task.spawn(function()
-        while LoadingScreen.AbsoluteSize.X == 0 do
-            task.wait()
-        end
+        task.wait(0.1) -- yield to initialize viewport dimensions
         while isSpawningParticles and LoadingScreen and LoadingScreen.Parent do
-            SpawnGoldEmber()
-            task.wait(0.07)
+            pcall(SpawnGoldEmber)
+            task.wait(0.08)
         end
     end)
     
@@ -538,20 +547,22 @@ function Library:CreateWindow()
     end)
     
     ---------------------------------------------------------
-    -- 5. Robust Loading Sequence Engine
+    -- 5. Safe, Thread-Isolated Loading Engine
     ---------------------------------------------------------
     local function PlayLoadingAnimation()
         local steps = 100
-        local duration = 3.2 -- Loading duration
+        local duration = 3.2
         
         for i = 1, steps do
             if not ScreenGui or not ScreenGui.Parent then break end
             local ratio = i / steps
             
-            -- Tweens the bar beautifully and reliably
-            TweenService:Create(BarFill, TweenInfo.new(0.04, Enum.EasingStyle.Linear), {
-                Size = UDim2.new(ratio, 0, 1, 0)
-            }):Play()
+            -- Keep tweens safely isolated to handle varying executor environments
+            pcall(function()
+                TweenService:Create(BarFill, TweenInfo.new(0.04, Enum.EasingStyle.Linear), {
+                    Size = UDim2.new(ratio, 0, 1, 0)
+                }):Play()
+            end)
             
             LoadingPercent.Text = tostring(math.floor(ratio * 100)) .. "%"
             task.wait(duration / steps)
@@ -560,19 +571,20 @@ function Library:CreateWindow()
         isSpawningParticles = false
         task.wait(0.2)
         
-        -- Masterpiece Fadeout Sequence
+        -- Masterpiece Safe Fadeout Sequence
         local fadeOut = TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         
-        -- Safely fade all descendants
-        for _, descendant in ipairs(LoadingScreen:GetDescendants()) do
-            if descendant:IsA("Frame") and descendant ~= LoadingScreen then
-                TweenService:Create(descendant, fadeOut, {BackgroundTransparency = 1}):Play()
-            elseif descendant:IsA("TextLabel") then
-                TweenService:Create(descendant, fadeOut, {TextTransparency = 1}):Play()
-            elseif descendant:IsA("UIStroke") then
-                TweenService:Create(descendant, fadeOut, {Transparency = 1}):Play()
+        pcall(function()
+            for _, descendant in ipairs(LoadingScreen:GetDescendants()) do
+                if descendant:IsA("Frame") and descendant ~= LoadingScreen then
+                    TweenService:Create(descendant, fadeOut, {BackgroundTransparency = 1}):Play()
+                elseif descendant:IsA("TextLabel") then
+                    TweenService:Create(descendant, fadeOut, {TextTransparency = 1}):Play()
+                elseif descendant:IsA("UIStroke") then
+                    TweenService:Create(descendant, fadeOut, {Transparency = 1}):Play()
+                end
             end
-        end
+        end)
         
         local ScreenFade = TweenService:Create(LoadingScreen, fadeOut, {BackgroundTransparency = 1})
         ScreenFade:Play()
@@ -591,6 +603,7 @@ function Library:CreateWindow()
         end)
     end
     
+    -- Safely spawn animation loop
     task.spawn(PlayLoadingAnimation)
     
     ---------------------------------------------------------
