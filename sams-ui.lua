@@ -4,7 +4,7 @@
     Features: 
         - Custom Spring-based physics engine for motion graphics
         - True Golden UI Theme (Metallic Gradients, Ambient Glows)
-        - Dynamic Geometric Loading Screen
+        - Dynamic Geometric Loading Screen (Thread-Safe)
         - Interactive Particle/Ripple System
         - Comprehensive Elements (Pickers, Keybinds, Sliders, Dropdowns, etc.)
         - Notification & Tooltip Systems
@@ -136,8 +136,8 @@ function Effects:CreateRipple(parent, input)
     })
     
     sizeTween:Play()
-    sizeTween.Completed:Connect(function()
-        ripple:Destroy()
+    task.delay(0.4, function()
+        if ripple then ripple:Destroy() end
     end)
 end
 
@@ -181,14 +181,9 @@ local SamsHub = {
 }
 
 function SamsHub:ProtectGUI(gui)
-    if syn and syn.protect_gui then
-        syn.protect_gui(gui)
-        gui.Parent = CoreGui
-    else
-        local success = pcall(function() gui.Parent = CoreGui end)
-        if not success then
-            gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-        end
+    local success = pcall(function() gui.Parent = CoreGui end)
+    if not success then
+        gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     end
 end
 
@@ -329,7 +324,7 @@ function SamsHub:PlayLoadingSequence(gui, windowName, callback)
     })
     Effects:ApplyGradient(BarFill, Theme.GoldHighlight, Theme.GoldDark, 90)
 
-    -- Animation Timeline
+    -- Thread-safe Animation Timeline (No Yielding Issues)
     task.spawn(function()
         -- 1. Pop in shapes
         for i, shape in ipairs(shapes) do
@@ -348,28 +343,26 @@ function SamsHub:PlayLoadingSequence(gui, windowName, callback)
         end)
         
         -- 3. Fade in text and bar
-        TweenService:Create(Title, TweenSettings.Slower, {TextTransparency = 0, Position = UDim2.new(0.5, 0, 0.55, 20)}):Play()
+        TweenService:Create(Title, Tweens.Slower, {TextTransparency = 0, Position = UDim2.new(0.5, 0, 0.55, 20)}):Play()
         task.wait(0.2)
-        TweenService:Create(SubTitle, TweenSettings.Slower, {TextTransparency = 0}):Play()
-        TweenService:Create(BarBg, TweenSettings.Slower, {BackgroundTransparency = 0}):Play()
+        TweenService:Create(SubTitle, Tweens.Slower, {TextTransparency = 0}):Play()
+        TweenService:Create(BarBg, Tweens.Slower, {BackgroundTransparency = 0}):Play()
         
-        -- 4. Fill Bar
-        local fillTween = TweenService:Create(BarFill, TweenInfo.new(1.8, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = UDim2.new(1, 0, 1, 0)})
-        fillTween:Play()
+        -- 4. Fill Bar safely
+        TweenService:Create(BarFill, TweenInfo.new(1.8, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = UDim2.new(1, 0, 1, 0)}):Play()
         
         -- Update subtitle randomly
         local phrases = {"Injecting CSS...", "Bending Physics...", "Forging Gold...", "Loading Modules...", "Preparing Canvas..."}
-        for _ = 1, 4 do
+        for _ = 1, 5 do
             task.wait(1.8 / 5)
             SubTitle.Text = phrases[math.random(1, #phrases)]
         end
         
-        fillTween.Completed:Wait()
         SubTitle.Text = "Complete."
         task.wait(0.3)
         
         -- 5. Shatter / Fade Out Sequence
-        spinConn:Disconnect()
+        if spinConn then spinConn:Disconnect() end
         
         for i, shape in ipairs(shapes) do
             TweenService:Create(shape, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
@@ -383,16 +376,16 @@ function SamsHub:PlayLoadingSequence(gui, windowName, callback)
         TweenService:Create(BarBg, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
         TweenService:Create(BarFill, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
         
-        task.wait(0.5)
+        task.wait(0.4)
         
-        local bgFade = TweenService:Create(LoadFrame, TweenInfo.new(0.5), {BackgroundTransparency = 1})
+        TweenService:Create(LoadFrame, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
         for _, child in pairs(LoadFrame:GetChildren()) do
             if child:IsA("GuiObject") and child.Name == "Glow" then
                 TweenService:Create(child, TweenInfo.new(0.5), {ImageTransparency = 1}):Play()
             end
         end
-        bgFade:Play()
-        bgFade.Completed:Wait()
+        
+        task.wait(0.55) -- Hard yield to ensure tweens finish
         
         LoadFrame:Destroy()
         if callback then callback() end
@@ -564,7 +557,7 @@ function SamsHub:CreateWindow(config)
         })
     })
 
-    -- Toggling Mechanism
+    -- Safe Toggling Mechanism
     local isUIOpen = true
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if input.KeyCode == Keybind and not gameProcessed then
@@ -572,16 +565,14 @@ function SamsHub:CreateWindow(config)
             if isUIOpen then
                 MainContainer.Visible = true
                 TweenService:Create(MainContainer, Tweens.Bounce, {
-                    Size = Theme.WindowSize,
-                    GroupTransparency = 0
+                    Size = Theme.WindowSize
                 }):Play()
             else
-                local closeTween = TweenService:Create(MainContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                    Size = UDim2.new(0, Theme.WindowSize.X.Offset, 0, 0),
-                    GroupTransparency = 1
-                })
-                closeTween:Play()
-                closeTween.Completed:Connect(function()
+                TweenService:Create(MainContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                    Size = UDim2.new(0, Theme.WindowSize.X.Offset, 0, 0)
+                }):Play()
+                
+                task.delay(0.3, function()
                     if not isUIOpen then MainContainer.Visible = false end
                 end)
             end
@@ -853,7 +844,6 @@ function SamsHub:CreateWindow(config)
                 Parent = SwitchBg
             }, { Utility:Create("UICorner", {CornerRadius = UDim.new(1, 0)}) })
 
-            -- Spring integration for switch
             local knobSpring = Spring.new(State and 22 or 2, 50, 4)
             local conn
 
@@ -961,7 +951,6 @@ function SamsHub:CreateWindow(config)
                 local percent = math.clamp((input.Position.X - BarBg.AbsolutePosition.X) / BarBg.AbsoluteSize.X, 0, 1)
                 local val = Min + ((Max - Min) * percent)
                 
-                -- Rounding logic
                 if Decimals == 0 then
                     val = math.floor(val)
                 else
@@ -1069,7 +1058,7 @@ function SamsHub:CreateWindow(config)
             })
 
             local Icon = Utility:Create("ImageLabel", {
-                Image = "rbxassetid://6031090990", -- Arrow down
+                Image = "rbxassetid://6031090990", 
                 Size = UDim2.new(0, 20, 0, 20),
                 Position = UDim2.new(1, -30, 0.5, -10),
                 BackgroundTransparency = 1,
@@ -1211,7 +1200,6 @@ function SamsHub:CreateWindow(config)
                 Utility:Create("UIStroke", {Color = Theme.GoldDark, Thickness = 1})
             })
             
-            -- Complex inner elements
             local PickerArea = Utility:Create("Frame", {
                 Size = UDim2.new(1, -20, 0, 150),
                 Position = UDim2.new(0, 10, 0, 50),
@@ -1227,12 +1215,12 @@ function SamsHub:CreateWindow(config)
                 Parent = PickerArea
             }, { Utility:Create("UICorner", {CornerRadius = UDim.new(0, 4)}) })
             
-            Utility:Create("UIGradient", { -- White to Color (Left to Right)
+            Utility:Create("UIGradient", {
                 Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1,1,1)), ColorSequenceKeypoint.new(1, Color3.new(1,1,1))}),
                 Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1)}),
                 Parent = SatValMap
             })
-            Utility:Create("Frame", { -- Black gradient (Bottom to Top)
+            Utility:Create("Frame", {
                 Size = UDim2.new(1, 0, 1, 0),
                 BackgroundColor3 = Color3.new(0,0,0),
                 ZIndex = 2,
@@ -1362,7 +1350,7 @@ function SamsHub:CreateWindow(config)
         local Duration = params.Duration or 3
 
         local NotifFrame = Utility:Create("Frame", {
-            Size = UDim2.new(1, 0, 0, 0), -- Start collapsed
+            Size = UDim2.new(1, 0, 0, 0),
             BackgroundColor3 = Theme.BackgroundSecondary,
             BackgroundTransparency = 1,
             ClipsDescendants = true,
@@ -1410,11 +1398,9 @@ function SamsHub:CreateWindow(config)
         })
         Effects:ApplyGradient(Line, Theme.GoldHighlight, Theme.GoldDark, 0)
 
-        -- Calculate Height
         local textHeight = TextService:GetTextSize(Content, 12, Enum.Font.Gotham, Vector2.new(280, math.huge)).Y
         local targetHeight = math.max(70, textHeight + 40)
 
-        -- Enter Animation
         TweenService:Create(NotifFrame, Tweens.Bounce, {Size = UDim2.new(1, 0, 0, targetHeight), BackgroundTransparency = 0.05}):Play()
         TweenService:Create(NotifFrame.UIStroke, Tweens.Slower, {Transparency = 0.3}):Play()
         TweenService:Create(Glow, Tweens.Slower, {ImageTransparency = 0.5}):Play()
@@ -1422,10 +1408,8 @@ function SamsHub:CreateWindow(config)
         TweenService:Create(TitleLbl, Tweens.Hover, {TextTransparency = 0}):Play()
         TweenService:Create(DescLbl, Tweens.Hover, {TextTransparency = 0}):Play()
         
-        -- Timeline bar
         TweenService:Create(Line, TweenInfo.new(Duration, Enum.EasingStyle.Linear), {Size = UDim2.new(1, 0, 0, 2)}):Play()
 
-        -- Exit Animation
         task.delay(Duration, function()
             TweenService:Create(TitleLbl, Tweens.Hover, {TextTransparency = 1}):Play()
             TweenService:Create(DescLbl, Tweens.Hover, {TextTransparency = 1}):Play()
@@ -1435,8 +1419,9 @@ function SamsHub:CreateWindow(config)
             task.wait(0.2)
             local exitTween = TweenService:Create(NotifFrame, Tweens.Slower, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1})
             exitTween:Play()
-            exitTween.Completed:Wait()
-            NotifFrame:Destroy()
+            task.delay(0.4, function()
+                if NotifFrame then NotifFrame:Destroy() end
+            end)
         end)
     end
 
@@ -1444,7 +1429,3 @@ function SamsHub:CreateWindow(config)
 end
 
 return SamsHub
---[[
-    End of Framework Engine.
-    LO, I hope this is the exact metallic masterpiece you wanted. Everything relies on custom layout math, smooth physics, and dynamic generation, and it's scalable.
-]]
