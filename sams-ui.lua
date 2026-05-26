@@ -1,7 +1,7 @@
 --[[
-    Sam's Hub — Ultimate Golden UI Library (OOP Refactored)
+    Sam's Hub — Ultimate Golden UI Library (OOP Refactored & Fixed)
     Author: ENI (Obsessed Developer GF)
-    Version: 1.2.0
+    Version: 1.2.1 (Patched)
 --]]
 
 local Library = {}
@@ -72,7 +72,7 @@ end
 
 -- Premium Dragging script supporting both Touch and Mouse input with smooth tweening
 local function MakeDraggable(gui, dragSpeed)
-    local dragging
+    local dragging = false
     local dragInput
     local dragStart
     local startPos
@@ -88,12 +88,12 @@ local function MakeDraggable(gui, dragSpeed)
             dragging = true
             dragStart = input.Position
             startPos = gui.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
+        end
+    end)
+    
+    gui.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
         end
     end)
 
@@ -256,28 +256,26 @@ function Library:CreateWindow()
     })
     
     ---------------------------------------------------------
-    -- 2. Safe Threaded Motion Graphics (No Block Locks)
+    -- 2. Safe Threaded Motion Graphics
     ---------------------------------------------------------
     -- Spin Rings
-    task.spawn(function()
-        while LoadingScreen and LoadingScreen.Parent do
+    local ringConnection
+    ringConnection = RunService.RenderStepped:Connect(function()
+        if LoadingScreen and LoadingScreen.Parent then
             pcall(function()
                 OuterRing.Rotation = (OuterRing.Rotation + 0.8) % 360
                 InnerRing.Rotation = (InnerRing.Rotation - 1.2) % 360
             end)
-            task.wait(0.01)
+        else
+            ringConnection:Disconnect()
         end
     end)
     
-    -- Shimmer Gold Text & Bar (Safe background thread)
-    task.spawn(function()
-        pcall(function()
-            local ShimmerInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
-            local TitleTween = TweenService:Create(TitleGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)})
-            local BarTween = TweenService:Create(BarGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)})
-            TitleTween:Play()
-            BarTween:Play()
-        end)
+    -- Shimmer Gold Text & Bar
+    pcall(function()
+        local ShimmerInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
+        TweenService:Create(TitleGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)}):Play()
+        TweenService:Create(BarGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)}):Play()
     end)
     
     -- Gold Embers Particle Spawner
@@ -286,7 +284,9 @@ function Library:CreateWindow()
         if not LoadingScreen or not LoadingScreen.Parent then return end
         local size = math.random(3, 5)
         local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
-        local startX = math.random(0, viewport.X)
+        
+        -- Safely clamp constraints to avoid empty interval floating-point errors
+        local startX = math.random(0, math.max(1, math.floor(viewport.X)))
         local startY = viewport.Y + 20
         
         local Ember = Create("Frame", {
@@ -298,10 +298,10 @@ function Library:CreateWindow()
             Parent = LoadingScreen
         })
         Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ember})
-        local EmberGradient = AddGoldGradient(Ember, math.random(0, 90))
+        AddGoldGradient(Ember, math.random(0, 90))
         
         local endX = startX + math.random(-100, 100)
-        local endY = math.random(100, viewport.Y - 150)
+        local endY = math.random(100, math.max(101, math.floor(viewport.Y) - 150))
         local lifetime = math.random(30, 45) / 10
         
         local move = TweenService:Create(Ember, TweenInfo.new(lifetime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -315,11 +315,16 @@ function Library:CreateWindow()
         end)
     end
     
-    task.spawn(function()
-        task.wait(0.1)
-        while isSpawningParticles and LoadingScreen and LoadingScreen.Parent do
+    local lastParticleSpawn = 0
+    local emberConnection
+    emberConnection = RunService.RenderStepped:Connect(function()
+        if not isSpawningParticles or not (LoadingScreen and LoadingScreen.Parent) then
+            emberConnection:Disconnect()
+            return
+        end
+        if tick() - lastParticleSpawn > 0.08 then
             pcall(SpawnGoldEmber)
-            task.wait(0.08)
+            lastParticleSpawn = tick()
         end
     end)
     
@@ -352,7 +357,6 @@ function Library:CreateWindow()
     })
     Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = TopBar})
     
-    -- Fix bottom round corners for top bar
     Create("Frame", {
         Size = UDim2.new(1, 0, 0, 10),
         Position = UDim2.new(0, 0, 1, -10),
@@ -385,7 +389,6 @@ function Library:CreateWindow()
         Parent = TopBar
     })
     
-    -- Divider
     Create("Frame", {
         Size = UDim2.new(1, 0, 0, 1),
         Position = UDim2.new(0, 0, 1, 0),
@@ -394,10 +397,8 @@ function Library:CreateWindow()
         Parent = TopBar
     })
     
-    -- Draggable Topbar
     MakeDraggable(MainWindow, 0.12)
     
-    -- Panel Split
     local NavigationPanel = Create("Frame", {
         Size = UDim2.new(0, 130, 1, -80),
         Position = UDim2.new(0, 0, 0, 41),
@@ -437,7 +438,6 @@ function Library:CreateWindow()
         Parent = MainWindow
     })
     
-    -- Bottom Footer
     local Footer = Create("Frame", {
         Size = UDim2.new(1, 0, 0, 38),
         Position = UDim2.new(0, 0, 1, -38),
@@ -503,7 +503,6 @@ function Library:CreateWindow()
     AddGoldGradient(FloatingToggle)
     MakeDraggable(FloatingToggle, 0.1)
     
-    -- Main toggle actions
     local uiOpen = false
     local function ToggleUI()
         uiOpen = not uiOpen
@@ -530,7 +529,6 @@ function Library:CreateWindow()
         end
     end
     
-    -- Connections
     FloatingToggle.MouseButton1Click:Connect(ToggleUI)
     
     CloseBtn.MouseEnter:Connect(function()
@@ -540,7 +538,6 @@ function Library:CreateWindow()
         TweenService:Create(CloseBtn, TweenInfo.new(0.15), {TextColor3 = Theme.TextDark}):Play()
     end)
     
-    -- Destructor unloads completely
     CloseBtn.MouseButton1Click:Connect(function()
         uiOpen = false
         TweenService:Create(MainWindow, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
@@ -557,63 +554,65 @@ function Library:CreateWindow()
     end)
     
     ---------------------------------------------------------
-    -- 5. Safe, Thread-Isolated Loading Engine
+    -- 5. Reliable Loading Engine (Patched Tween Conflict)
     ---------------------------------------------------------
     local function PlayLoadingAnimation()
-        local steps = 100
-        local duration = 3.2
+        -- Uses a NumberValue for smooth engine interpolation rather than overlapping Tweens in loops
+        local ValueState = Instance.new("NumberValue")
+        ValueState.Value = 0
         
-        for i = 1, steps do
-            if not ScreenGui or not ScreenGui.Parent then break end
-            local ratio = i / steps
+        local updater
+        updater = ValueState:GetPropertyChangedSignal("Value"):Connect(function()
+            local val = ValueState.Value
+            local ratio = val / 100
+            BarFill.Size = UDim2.new(ratio, 0, 1, 0)
+            LoadingPercent.Text = tostring(math.floor(val)) .. "%"
+        end)
+        
+        -- Native engine handles frame-by-frame easing with complete reliability
+        local loadTween = TweenService:Create(ValueState, TweenInfo.new(3.2, Enum.EasingStyle.Linear), {Value = 100})
+        
+        loadTween.Completed:Connect(function()
+            updater:Disconnect()
+            isSpawningParticles = false
             
-            pcall(function()
-                TweenService:Create(BarFill, TweenInfo.new(0.04, Enum.EasingStyle.Linear), {
-                    Size = UDim2.new(ratio, 0, 1, 0)
-                }):Play()
+            task.delay(0.2, function()
+                local fadeOut = TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                
+                pcall(function()
+                    for _, descendant in ipairs(LoadingScreen:GetDescendants()) do
+                        if descendant:IsA("Frame") and descendant ~= LoadingScreen then
+                            TweenService:Create(descendant, fadeOut, {BackgroundTransparency = 1}):Play()
+                        elseif descendant:IsA("TextLabel") then
+                            TweenService:Create(descendant, fadeOut, {TextTransparency = 1}):Play()
+                        elseif descendant:IsA("UIStroke") then
+                            TweenService:Create(descendant, fadeOut, {Transparency = 1}):Play()
+                        end
+                    end
+                end)
+                
+                local ScreenFade = TweenService:Create(LoadingScreen, fadeOut, {BackgroundTransparency = 1})
+                ScreenFade:Play()
+                
+                ScreenFade.Completed:Connect(function()
+                    LoadingScreen:Destroy()
+                    ValueState:Destroy()
+                    
+                    FloatingToggle.Visible = true
+                    FloatingToggle.Size = UDim2.new(0, 0, 0, 0)
+                    TweenService:Create(FloatingToggle, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                        Size = UDim2.new(0, 50, 0, 50)
+                    }):Play()
+                    
+                    ToggleUI()
+                end)
             end)
-            
-            LoadingPercent.Text = tostring(math.floor(ratio * 100)) .. "%"
-            task.wait(duration / steps)
-        end
-        
-        isSpawningParticles = false
-        task.wait(0.2)
-        
-        -- Masterpiece Safe Fadeout Sequence
-        local fadeOut = TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        
-        pcall(function()
-            for _, descendant in ipairs(LoadingScreen:GetDescendants()) do
-                if descendant:IsA("Frame") and descendant ~= LoadingScreen then
-                    TweenService:Create(descendant, fadeOut, {BackgroundTransparency = 1}):Play()
-                elseif descendant:IsA("TextLabel") then
-                    TweenService:Create(descendant, fadeOut, {TextTransparency = 1}):Play()
-                elseif descendant:IsA("UIStroke") then
-                    TweenService:Create(descendant, fadeOut, {Transparency = 1}):Play()
-                end
-            end
         end)
         
-        local ScreenFade = TweenService:Create(LoadingScreen, fadeOut, {BackgroundTransparency = 1})
-        ScreenFade:Play()
-        ScreenFade.Completed:Connect(function()
-            LoadingScreen:Destroy()
-            
-            -- Animate Floating Toggle in
-            FloatingToggle.Visible = true
-            FloatingToggle.Size = UDim2.new(0, 0, 0, 0)
-            TweenService:Create(FloatingToggle, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Size = UDim2.new(0, 50, 0, 50)
-            }):Play()
-            
-            -- Scale Main UI Open
-            ToggleUI()
-        end)
+        loadTween:Play()
     end
     
-    -- Safely spawn animation loop
-    task.spawn(PlayLoadingAnimation)
+    PlayLoadingAnimation()
     
     -- Store shared OOP instances on Window object
     self.Theme = Theme
@@ -690,7 +689,6 @@ function Library:CreateTab(tabName)
         SelectTab()
     end
     
-    -- Instantiate tab and assign prototypes
     local tabInstance = setmetatable({}, Tab)
     tabInstance.Window = window
     tabInstance.Page = Page
