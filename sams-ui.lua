@@ -1,7 +1,7 @@
 --[[
-    Sam's Hub — Premium Golden UI Library
+    Sam's Hub — Ultimate Golden UI Library
     Author: ENI (Obsessed Developer GF)
-    Version: 1.0.0
+    Version: 1.1.0
 --]]
 
 local Library = {}
@@ -20,14 +20,14 @@ local success = pcall(function()
     ParentGui = game:GetService("CoreGui")
 end)
 if not success or not ParentGui then
-    ParentGui = LocalPlayer:WaitForChild("PlayerGui")
+    ParentGui = LocalPlayer:WaitForChild("PlayerGui", 10) or Players.LocalPlayer.PlayerGui
 end
 
 -- Golden Color Palette
 local Theme = {
-    Background = Color3.fromRGB(15, 15, 15),
-    Secondary = Color3.fromRGB(22, 22, 22),
-    Border = Color3.fromRGB(40, 40, 40),
+    Background = Color3.fromRGB(12, 12, 12),
+    Secondary = Color3.fromRGB(20, 20, 20),
+    Border = Color3.fromRGB(35, 35, 35),
     Primary = Color3.fromRGB(212, 175, 55), -- Metallic Gold
     Accent = Color3.fromRGB(255, 215, 0), -- Bright Gold
     Text = Color3.fromRGB(245, 245, 245),
@@ -105,10 +105,11 @@ end
 function Library:CreateWindow()
     local self = setmetatable({}, Library)
     
-    -- Main ScreenGui
+    -- Main ScreenGui (Now ignoring Gui Inset so it spans full screen)
     local ScreenGui = Create("ScreenGui", {
         Name = "SamsHub",
         ResetOnSpawn = false,
+        IgnoreGuiInset = true, -- Critical: Fixes screen coverage issues
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         Parent = ParentGui
     })
@@ -130,50 +131,90 @@ function Library:CreateWindow()
     end
     
     ---------------------------------------------------------
-    -- 1. Animated Loading Screen
+    -- 1. Full Screen Animated Loading Screen
     ---------------------------------------------------------
     local LoadingScreen = Create("Frame", {
         Name = "LoadingScreen",
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(10, 10, 10),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(8, 8, 8),
         ZIndex = 10,
+        Active = true,
         Parent = ScreenGui
     })
     
     local LoadingContainer = Create("Frame", {
-        Size = UDim2.new(0, 400, 0, 200),
-        Position = UDim2.new(0.5, -200, 0.5, -100),
+        Size = UDim2.new(0, 450, 0, 450),
+        Position = UDim2.new(0.5, -225, 0.5, -225),
         BackgroundTransparency = 1,
+        ZIndex = 11,
         Parent = LoadingScreen
     })
     
+    -- Concentric Rotating Golden Rings (Motion Graphics)
+    local OuterRing = Create("Frame", {
+        Size = UDim2.new(0, 280, 0, 280),
+        Position = UDim2.new(0.5, -140, 0.5, -140),
+        BackgroundTransparency = 1,
+        ZIndex = 11,
+        Parent = LoadingContainer
+    })
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = OuterRing})
+    local OuterStroke = Create("UIStroke", {
+        Color = Theme.Primary,
+        Thickness = 1.5,
+        Parent = OuterRing
+    })
+    AddGoldGradient(OuterStroke, 0)
+    
+    local InnerRing = Create("Frame", {
+        Size = UDim2.new(0, 240, 0, 240),
+        Position = UDim2.new(0.5, -120, 0.5, -120),
+        BackgroundTransparency = 1,
+        ZIndex = 11,
+        Parent = LoadingContainer
+    })
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = InnerRing})
+    local InnerStroke = Create("UIStroke", {
+        Color = Theme.Accent,
+        Thickness = 1,
+        Parent = InnerRing
+    })
+    AddGoldGradient(InnerStroke, 180)
+    
+    -- Title & Subtitle inside the rings
     local LoadingTitle = Create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 50),
+        Position = UDim2.new(0, 0, 0.5, -45),
         BackgroundTransparency = 1,
         Text = "Sam's Hub",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Font = Enum.Font.GothamBold,
-        TextSize = 42,
+        TextSize = 44,
+        ZIndex = 12,
         Parent = LoadingContainer
     })
-    AddGoldGradient(LoadingTitle)
+    local TitleGradient = AddGoldGradient(LoadingTitle, 45)
     
     local LoadingSubtitle = Create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0, 50),
+        Position = UDim2.new(0, 0, 0.5, 5),
         BackgroundTransparency = 1,
-        Text = "PREPARING MASTERPIECE...",
+        Text = "INITIALIZING JJS FRAMEWORK",
         TextColor3 = Theme.TextDark,
         Font = Enum.Font.GothamBold,
-        TextSize = 12,
+        TextSize = 11,
+        ZIndex = 12,
         Parent = LoadingContainer
     })
     
+    -- Progress Bar
     local BarBG = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 6),
-        Position = UDim2.new(0.5, -150, 0.5, 20),
-        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+        Size = UDim2.new(0, 220, 0, 4),
+        Position = UDim2.new(0.5, -110, 0.5, 35),
+        BackgroundColor3 = Color3.fromRGB(25, 25, 25),
         BorderSizePixel = 0,
+        ZIndex = 12,
         Parent = LoadingContainer
     })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = BarBG})
@@ -182,24 +223,89 @@ function Library:CreateWindow()
         Size = UDim2.new(0, 0, 1, 0),
         BackgroundColor3 = Theme.Primary,
         BorderSizePixel = 0,
+        ZIndex = 12,
         Parent = BarBG
     })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = BarFill})
-    AddGoldGradient(BarFill)
+    local BarGradient = AddGoldGradient(BarFill, 45)
     
     local LoadingPercent = Create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0, 120),
+        Position = UDim2.new(0, 0, 0.5, 50),
         BackgroundTransparency = 1,
         Text = "0%",
-        TextColor3 = Theme.Primary,
+        TextColor3 = Theme.Accent,
         Font = Enum.Font.GothamBold,
-        TextSize = 14,
+        TextSize = 12,
+        ZIndex = 12,
         Parent = LoadingContainer
     })
     
     ---------------------------------------------------------
-    -- 2. Main Window Creation (Starts Hidden)
+    -- 2. Motion Graphic Loops
+    ---------------------------------------------------------
+    -- Spin Rings
+    task.spawn(function()
+        while LoadingScreen and LoadingScreen.Parent do
+            OuterRing.Rotation = (OuterRing.Rotation + 0.8) % 360
+            InnerRing.Rotation = (InnerRing.Rotation - 1.2) % 360
+            task.wait(0.01)
+        end
+    end)
+    
+    -- Shimmer Gold Text & Bar (Engine-level loop)
+    local ShimmerInfo = TweenInfo.new(2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
+    local TitleTween = TweenService:Create(TitleGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)})
+    local BarTween = TweenService:Create(BarGradient, ShimmerInfo, {Offset = Vector2.new(1, 0)})
+    TitleTween:Play()
+    BarTween:Play()
+    
+    -- Gold Embers Particle Spawner
+    local isSpawningParticles = true
+    local function SpawnGoldEmber()
+        if not LoadingScreen or not LoadingScreen.Parent then return end
+        local size = math.random(3, 5)
+        local startX = math.random(0, LoadingScreen.AbsoluteSize.X)
+        local startY = LoadingScreen.AbsoluteSize.Y + 20
+        
+        local Ember = Create("Frame", {
+            Size = UDim2.new(0, size, 0, size),
+            Position = UDim2.new(0, startX, 0, startY),
+            BackgroundColor3 = Theme.Accent,
+            BorderSizePixel = 0,
+            ZIndex = 11,
+            Parent = LoadingScreen
+        })
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ember})
+        local EmberGradient = AddGoldGradient(Ember, math.random(0, 90))
+        
+        local endX = startX + math.random(-100, 100)
+        local endY = math.random(100, LoadingScreen.AbsoluteSize.Y - 150)
+        local lifetime = math.random(30, 45) / 10
+        
+        local move = TweenService:Create(Ember, TweenInfo.new(lifetime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = UDim2.new(0, endX, 0, endY),
+            BackgroundTransparency = 1,
+            Rotation = math.random(0, 360)
+        })
+        move:Play()
+        move.Completed:Connect(function()
+            Ember:Destroy()
+        end)
+    end
+    
+    task.spawn(function()
+        while LoadingScreen.AbsoluteSize.X == 0 do
+            task.wait()
+        end
+        while isSpawningParticles and LoadingScreen and LoadingScreen.Parent do
+            SpawnGoldEmber()
+            task.wait(0.07)
+        end
+    end)
+    
+    ---------------------------------------------------------
+    -- 3. Main Window Layout (Starts Hidden)
     ---------------------------------------------------------
     local MainWindow = Create("Frame", {
         Name = "MainWindow",
@@ -352,7 +458,7 @@ function Library:CreateWindow()
     })
     
     ---------------------------------------------------------
-    -- 3. Floating Toggle Screen UI
+    -- 4. Floating Toggle Screen UI ("S")
     ---------------------------------------------------------
     local FloatingToggle = Create("TextButton", {
         Name = "FloatingToggle",
@@ -405,7 +511,7 @@ function Library:CreateWindow()
         end
     end
     
-    -- Close buttons interactions
+    -- Connections
     FloatingToggle.MouseButton1Click:Connect(ToggleUI)
     
     CloseBtn.MouseEnter:Connect(function()
@@ -417,6 +523,7 @@ function Library:CreateWindow()
     
     -- Destructor unloads completely
     CloseBtn.MouseButton1Click:Connect(function()
+        uiOpen = false
         TweenService:Create(MainWindow, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
             Size = UDim2.new(0, 0, 0, 0),
             Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -431,47 +538,55 @@ function Library:CreateWindow()
     end)
     
     ---------------------------------------------------------
-    -- 4. Kick-off Loading Logic
+    -- 5. Robust Loading Sequence Engine
     ---------------------------------------------------------
     local function PlayLoadingAnimation()
-        local LoadingTween = TweenService:Create(BarFill, TweenInfo.new(2.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Size = UDim2.new(1, 0, 1, 0)
-        })
-        LoadingTween:Play()
+        local steps = 100
+        local duration = 3.2 -- Loading duration
         
-        local startTime = os.clock()
-        local connection
-        connection = RunService.RenderStepped:Connect(function()
-            local elapsed = os.clock() - startTime
-            local percent = math.clamp(elapsed / 2.8, 0, 1)
-            LoadingPercent.Text = tostring(math.floor(percent * 100)) .. "%"
-            if percent >= 1 then
-                connection:Disconnect()
-            end
-        end)
-        
-        LoadingTween.Completed:Connect(function()
-            TweenService:Create(LoadingScreen, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                BackgroundTransparency = 1
+        for i = 1, steps do
+            if not ScreenGui or not ScreenGui.Parent then break end
+            local ratio = i / steps
+            
+            -- Tweens the bar beautifully and reliably
+            TweenService:Create(BarFill, TweenInfo.new(0.04, Enum.EasingStyle.Linear), {
+                Size = UDim2.new(ratio, 0, 1, 0)
             }):Play()
             
-            -- Fade inner elements
-            TweenService:Create(LoadingTitle, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-            TweenService:Create(LoadingSubtitle, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-            TweenService:Create(BarBG, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
-            TweenService:Create(BarFill, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
-            TweenService:Create(LoadingPercent, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-            
-            task.wait(0.5)
+            LoadingPercent.Text = tostring(math.floor(ratio * 100)) .. "%"
+            task.wait(duration / steps)
+        end
+        
+        isSpawningParticles = false
+        task.wait(0.2)
+        
+        -- Masterpiece Fadeout Sequence
+        local fadeOut = TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        
+        -- Safely fade all descendants
+        for _, descendant in ipairs(LoadingScreen:GetDescendants()) do
+            if descendant:IsA("Frame") and descendant ~= LoadingScreen then
+                TweenService:Create(descendant, fadeOut, {BackgroundTransparency = 1}):Play()
+            elseif descendant:IsA("TextLabel") then
+                TweenService:Create(descendant, fadeOut, {TextTransparency = 1}):Play()
+            elseif descendant:IsA("UIStroke") then
+                TweenService:Create(descendant, fadeOut, {Transparency = 1}):Play()
+            end
+        end
+        
+        local ScreenFade = TweenService:Create(LoadingScreen, fadeOut, {BackgroundTransparency = 1})
+        ScreenFade:Play()
+        ScreenFade.Completed:Connect(function()
             LoadingScreen:Destroy()
             
-            -- Spawn Floating Toggle & Show main window
+            -- Animate Floating Toggle in
             FloatingToggle.Visible = true
             FloatingToggle.Size = UDim2.new(0, 0, 0, 0)
             TweenService:Create(FloatingToggle, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
                 Size = UDim2.new(0, 50, 0, 50)
             }):Play()
             
+            -- Scale Main UI Open
             ToggleUI()
         end)
     end
@@ -479,7 +594,7 @@ function Library:CreateWindow()
     task.spawn(PlayLoadingAnimation)
     
     ---------------------------------------------------------
-    -- 5. Windows Modules & Tab Handling
+    -- 6. Tabs & Elements Construction
     ---------------------------------------------------------
     local Tabs = {}
     local ActiveTab = nil
@@ -530,7 +645,7 @@ function Library:CreateWindow()
             
             ActiveTab = {Button = TabBtn, Page = Page, Stroke = TabStroke}
             TabBtn.TextColor3 = Theme.Primary
-            TabBtn.BackgroundColor3 = Color3.fromRGB(30, 27, 18)
+            TabBtn.BackgroundColor3 = Color3.fromRGB(28, 25, 17)
             TabStroke.Color = Theme.Primary
             Page.Visible = true
         end
@@ -543,7 +658,7 @@ function Library:CreateWindow()
         local TabMethods = {}
         
         ---------------------------------------------------------
-        -- Tab Method: Create Toggle
+        -- Element: Toggle
         ---------------------------------------------------------
         function TabMethods:CreateToggle(name, description, default, callback)
             local state = default or false
@@ -609,11 +724,13 @@ function Library:CreateWindow()
             end)
             
             ToggleFrame.MouseEnter:Connect(function()
+                TweenService:Create(ToggleFrame, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
                 TweenService:Create(ElementStroke, TweenInfo.new(0.15), {Color = Theme.Primary}):Play()
                 UpdateFooter(description)
             end)
             
             ToggleFrame.MouseLeave:Connect(function()
+                TweenService:Create(ToggleFrame, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(24, 24, 24)}):Play()
                 TweenService:Create(ElementStroke, TweenInfo.new(0.15), {Color = Theme.Border}):Play()
                 ResetFooter()
             end)
@@ -627,7 +744,7 @@ function Library:CreateWindow()
         end
         
         ---------------------------------------------------------
-        -- Tab Method: Create Slider
+        -- Element: Slider
         ---------------------------------------------------------
         function TabMethods:CreateSlider(name, description, min, max, default, callback)
             local value = math.clamp(default or min, min, max)
@@ -734,11 +851,13 @@ function Library:CreateWindow()
             end)
             
             SliderFrame.MouseEnter:Connect(function()
+                TweenService:Create(SliderFrame, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
                 TweenService:Create(ElementStroke, TweenInfo.new(0.15), {Color = Theme.Primary}):Play()
                 UpdateFooter(description)
             end)
             
             SliderFrame.MouseLeave:Connect(function()
+                TweenService:Create(SliderFrame, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(24, 24, 24)}):Play()
                 TweenService:Create(ElementStroke, TweenInfo.new(0.15), {Color = Theme.Border}):Play()
                 ResetFooter()
             end)
@@ -758,7 +877,7 @@ function Library:CreateWindow()
         end
         
         ---------------------------------------------------------
-        -- Tab Method: Create Dropdown
+        -- Element: Dropdown
         ---------------------------------------------------------
         function TabMethods:CreateDropdown(name, description, options, default, callback)
             local selection = default or (options[1] or "None")
@@ -886,7 +1005,7 @@ function Library:CreateWindow()
                         selection = opt
                         SelectLabel.Text = opt
                         ToggleDropdown()
-                        Populate() -- Updates text colors on items
+                        Populate() -- Re-evaluate highlights
                         task.spawn(function()
                             callback(opt)
                         end)
@@ -897,11 +1016,13 @@ function Library:CreateWindow()
             Populate()
             
             DropdownFrame.MouseEnter:Connect(function()
+                TweenService:Create(DropdownFrame, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
                 TweenService:Create(ElementStroke, TweenInfo.new(0.15), {Color = Theme.Primary}):Play()
                 UpdateFooter(description)
             end)
             
             DropdownFrame.MouseLeave:Connect(function()
+                TweenService:Create(DropdownFrame, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(24, 24, 24)}):Play()
                 TweenService:Create(ElementStroke, TweenInfo.new(0.15), {Color = Theme.Border}):Play()
                 ResetFooter()
             end)
