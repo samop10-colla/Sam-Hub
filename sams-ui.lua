@@ -7,7 +7,7 @@
         - Dynamic Geometric Loading Screen (Thread-Safe)
         - Interactive Particle/Ripple System
         - Comprehensive Elements (Pickers, Keybinds, Sliders, Dropdowns, etc.)
-        - Notification & Tooltip Systems
+        - Floating Toggle Emblem added back
 ]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -38,7 +38,6 @@ function Utility:Create(className, properties, children)
     return inst
 end
 
--- Custom Spring Module for buttery smooth motion graphics
 local Spring = {}
 Spring.__index = Spring
 
@@ -68,24 +67,20 @@ end
 --========================================================
 
 local Theme = {
-    -- True Gold Palette
     GoldBase = Color3.fromRGB(212, 175, 55),
     GoldHighlight = Color3.fromRGB(255, 223, 0),
     GoldShadow = Color3.fromRGB(138, 115, 34),
     GoldDark = Color3.fromRGB(85, 70, 20),
     
-    -- Background Palette (Obsidian/Carbon)
     BackgroundMain = Color3.fromRGB(12, 12, 12),
     BackgroundSecondary = Color3.fromRGB(18, 18, 18),
     BackgroundTertiary = Color3.fromRGB(24, 24, 24),
     BackgroundHover = Color3.fromRGB(30, 30, 30),
     
-    -- Accents & Text
     TextMain = Color3.fromRGB(245, 245, 245),
     TextMuted = Color3.fromRGB(160, 160, 160),
     TextDark = Color3.fromRGB(100, 100, 100),
     
-    -- UI Metrics
     CornerRadius = UDim.new(0, 6),
     WindowSize = UDim2.new(0, 650, 0, 420),
     SidebarWidth = 160
@@ -156,7 +151,7 @@ function Effects:CreateGlow(parent, color, transparency, size)
     return Utility:Create("ImageLabel", {
         Name = "Glow",
         BackgroundTransparency = 1,
-        Image = "rbxassetid://5028857472", -- Soft glow asset
+        Image = "rbxassetid://5028857472",
         ImageColor3 = color,
         ImageTransparency = transparency or 0.5,
         Size = size or UDim2.new(1, 40, 1, 40),
@@ -173,12 +168,7 @@ end
 -- 4. FRAMEWORK CORE
 --========================================================
 
-local SamsHub = {
-    Windows = {},
-    Connections = {},
-    Hovering = false,
-    CurrentZIndex = 100
-}
+local SamsHub = {}
 
 function SamsHub:ProtectGUI(gui)
     local success = pcall(function() gui.Parent = CoreGui end)
@@ -244,12 +234,11 @@ function SamsHub:PlayLoadingSequence(gui, windowName, callback)
         Parent = LoadFrame
     })
 
-    -- Geometric Logo Generation
     local shapes = {}
     for i = 1, 3 do
         local shape = Utility:Create("Frame", {
             Name = "Shape" .. i,
-            Size = UDim2.new(0, 0, 0, 0), -- Start size 0
+            Size = UDim2.new(0, 0, 0, 0),
             Position = UDim2.new(0.5, 0, 0.5, 0),
             AnchorPoint = Vector2.new(0.5, 0.5),
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -282,7 +271,6 @@ function SamsHub:PlayLoadingSequence(gui, windowName, callback)
         ZIndex = 1005,
         Parent = LoadFrame
     })
-    
     Effects:ApplyGradient(Title, Theme.GoldHighlight, Theme.GoldBase, 0)
 
     local SubTitle = Utility:Create("TextLabel", {
@@ -324,9 +312,7 @@ function SamsHub:PlayLoadingSequence(gui, windowName, callback)
     })
     Effects:ApplyGradient(BarFill, Theme.GoldHighlight, Theme.GoldDark, 90)
 
-    -- Thread-safe Animation Timeline (No Yielding Issues)
     task.spawn(function()
-        -- 1. Pop in shapes
         for i, shape in ipairs(shapes) do
             TweenService:Create(shape, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
                 Size = UDim2.new(0, 80, 0, 80)
@@ -335,23 +321,19 @@ function SamsHub:PlayLoadingSequence(gui, windowName, callback)
             task.wait(0.15)
         end
         
-        -- 2. Spin shapes
         local spinConn = RunService.RenderStepped:Connect(function()
             for i, shape in ipairs(shapes) do
                 shape.Rotation = shape.Rotation + (0.5 * i)
             end
         end)
         
-        -- 3. Fade in text and bar
         TweenService:Create(Title, Tweens.Slower, {TextTransparency = 0, Position = UDim2.new(0.5, 0, 0.55, 20)}):Play()
         task.wait(0.2)
         TweenService:Create(SubTitle, Tweens.Slower, {TextTransparency = 0}):Play()
         TweenService:Create(BarBg, Tweens.Slower, {BackgroundTransparency = 0}):Play()
         
-        -- 4. Fill Bar safely
         TweenService:Create(BarFill, TweenInfo.new(1.8, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = UDim2.new(1, 0, 1, 0)}):Play()
         
-        -- Update subtitle randomly
         local phrases = {"Injecting CSS...", "Bending Physics...", "Forging Gold...", "Loading Modules...", "Preparing Canvas..."}
         for _ = 1, 5 do
             task.wait(1.8 / 5)
@@ -361,7 +343,6 @@ function SamsHub:PlayLoadingSequence(gui, windowName, callback)
         SubTitle.Text = "Complete."
         task.wait(0.3)
         
-        -- 5. Shatter / Fade Out Sequence
         if spinConn then spinConn:Disconnect() end
         
         for i, shape in ipairs(shapes) do
@@ -385,7 +366,7 @@ function SamsHub:PlayLoadingSequence(gui, windowName, callback)
             end
         end
         
-        task.wait(0.55) -- Hard yield to ensure tweens finish
+        task.wait(0.55)
         
         LoadFrame:Destroy()
         if callback then callback() end
@@ -411,6 +392,27 @@ function SamsHub:CreateWindow(config)
     
     SamsHub:ProtectGUI(CoreUI)
     
+    -- Floating Toggle Button (The "S" Button)
+    local ToggleButton = Utility:Create("TextButton", {
+        Name = "FloatingToggle",
+        Size = UDim2.new(0, 50, 0, 50),
+        Position = UDim2.new(0, 30, 0.5, -25),
+        BackgroundColor3 = Theme.BackgroundSecondary,
+        Text = "S",
+        Font = Enum.Font.GothamBlack,
+        TextSize = 22,
+        TextColor3 = Theme.GoldHighlight,
+        AutoButtonColor = false,
+        Visible = not UseLoading, -- Hides during loading
+        ZIndex = 50,
+        Parent = CoreUI
+    }, {
+        Utility:Create("UICorner", {CornerRadius = UDim.new(1, 0)}),
+        Utility:Create("UIStroke", {Color = Theme.GoldBase, Thickness = 2})
+    })
+    Effects:CreateGlow(ToggleButton, Theme.GoldShadow, 0.5, UDim2.new(1, 30, 1, 30))
+    SamsHub:MakeDraggable(ToggleButton, ToggleButton)
+    
     local MainContainer = Utility:Create("Frame", {
         Name = "MainContainer",
         Size = Theme.WindowSize,
@@ -430,11 +432,9 @@ function SamsHub:CreateWindow(config)
         })
     })
     
-    -- Drop shadow
     Effects:CreateGlow(MainContainer, Color3.new(0,0,0), 0.4, UDim2.new(1, 80, 1, 80))
     MainContainer.Parent = CoreUI
     
-    -- Topbar setup
     local Topbar = Utility:Create("Frame", {
         Name = "Topbar",
         Size = UDim2.new(1, 0, 0, 45),
@@ -444,7 +444,7 @@ function SamsHub:CreateWindow(config)
         Parent = MainContainer
     }, {
         Utility:Create("UICorner", {CornerRadius = Theme.CornerRadius}),
-        Utility:Create("Frame", { -- Square off bottom corners
+        Utility:Create("Frame", {
             Name = "BottomBlock",
             Size = UDim2.new(1, 0, 0, 10),
             Position = UDim2.new(0, 0, 1, -10),
@@ -453,7 +453,6 @@ function SamsHub:CreateWindow(config)
         })
     })
     
-    -- Gold Accent Line
     local AccentLine = Utility:Create("Frame", {
         Name = "AccentLine",
         Size = UDim2.new(1, 0, 0, 1),
@@ -478,12 +477,10 @@ function SamsHub:CreateWindow(config)
         ZIndex = 12,
         Parent = Topbar
     })
-    -- Gradient Text
     Effects:ApplyGradient(TitleLabel, Theme.GoldHighlight, Theme.GoldBase, 0)
     
     SamsHub:MakeDraggable(Topbar, MainContainer)
     
-    -- Sidebar Setup
     local Sidebar = Utility:Create("Frame", {
         Name = "Sidebar",
         Size = UDim2.new(0, Theme.SidebarWidth, 1, -45),
@@ -494,7 +491,7 @@ function SamsHub:CreateWindow(config)
         Parent = MainContainer
     }, {
         Utility:Create("UICorner", {CornerRadius = Theme.CornerRadius}),
-        Utility:Create("Frame", { -- Square off right and top corners
+        Utility:Create("Frame", {
             Name = "Filler",
             Size = UDim2.new(0, 10, 1, 0),
             Position = UDim2.new(1, -10, 0, 0),
@@ -531,7 +528,6 @@ function SamsHub:CreateWindow(config)
         })
     })
 
-    -- Content Container Setup
     local ContentContainer = Utility:Create("Frame", {
         Name = "Content",
         Size = UDim2.new(1, -Theme.SidebarWidth, 1, -45),
@@ -541,7 +537,6 @@ function SamsHub:CreateWindow(config)
         Parent = MainContainer
     })
     
-    -- Notification Container
     local NotifContainer = Utility:Create("Frame", {
         Name = "Notifications",
         Size = UDim2.new(0, 300, 1, 0),
@@ -557,30 +552,43 @@ function SamsHub:CreateWindow(config)
         })
     })
 
-    -- Safe Toggling Mechanism
+    -- Universal Toggle Function (Hooks to Button and Keybind)
     local isUIOpen = true
+    local function ToggleMenu()
+        isUIOpen = not isUIOpen
+        if isUIOpen then
+            MainContainer.Visible = true
+            TweenService:Create(MainContainer, Tweens.Bounce, {
+                Size = Theme.WindowSize
+            }):Play()
+        else
+            TweenService:Create(MainContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Size = UDim2.new(0, Theme.WindowSize.X.Offset, 0, 0)
+            }):Play()
+            
+            task.delay(0.3, function()
+                if not isUIOpen then MainContainer.Visible = false end
+            end)
+        end
+    end
+
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if input.KeyCode == Keybind and not gameProcessed then
-            isUIOpen = not isUIOpen
-            if isUIOpen then
-                MainContainer.Visible = true
-                TweenService:Create(MainContainer, Tweens.Bounce, {
-                    Size = Theme.WindowSize
-                }):Play()
-            else
-                TweenService:Create(MainContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                    Size = UDim2.new(0, Theme.WindowSize.X.Offset, 0, 0)
-                }):Play()
-                
-                task.delay(0.3, function()
-                    if not isUIOpen then MainContainer.Visible = false end
-                end)
-            end
+            ToggleMenu()
         end
+    end)
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        Effects:CreateRipple(ToggleButton)
+        ToggleMenu()
     end)
 
     if UseLoading then
         SamsHub:PlayLoadingSequence(CoreUI, WindowName, function()
+            ToggleButton.Visible = true -- Show toggle button after load
+            ToggleButton.Size = UDim2.new(0, 0, 0, 0)
+            TweenService:Create(ToggleButton, Tweens.Bounce, {Size = UDim2.new(0, 50, 0, 50)}):Play()
+            
             MainContainer.Visible = true
             MainContainer.Size = UDim2.new(0, Theme.WindowSize.X.Offset, 0, 0)
             TweenService:Create(MainContainer, Tweens.Bounce, {Size = Theme.WindowSize}):Play()
@@ -611,7 +619,6 @@ function SamsHub:CreateWindow(config)
             Utility:Create("UICorner", {CornerRadius = Theme.CornerRadius})
         })
 
-        -- Visuals for Tab
         local Indicator = Utility:Create("Frame", {
             Name = "Indicator",
             Size = UDim2.new(0, 3, 0, 0),
@@ -622,7 +629,6 @@ function SamsHub:CreateWindow(config)
             ZIndex = 14,
             Parent = TabButton
         }, { Utility:Create("UICorner", {CornerRadius = UDim.new(1, 0)}) })
-        
         Effects:ApplyGradient(Indicator, Theme.GoldHighlight, Theme.GoldBase, 180)
 
         local TabIcon = Utility:Create("ImageLabel", {
@@ -719,7 +725,7 @@ function SamsHub:CreateWindow(config)
         if FirstTab then ActivateTab(); FirstTab = false end
 
         --========================================================
-        -- 8. ELEMENTS API (Inside Tab)
+        -- 8. ELEMENTS API
         --========================================================
 
         function TabAPI:CreateSection(sectionName)
