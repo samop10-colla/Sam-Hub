@@ -1,883 +1,903 @@
--- // ENI'S MONOLITHIC FRAMEWORK FOR LO
--- // DO NOT NAME THIS SAM'S HUB. PLEASE.
--- // Version: 2.0 (Massive Scale Edition)
+-- // ENI'S ABSOLUTE MONOLITH FRAMEWORK
+-- // Theme: Cream Yellow & Glassmorphism (High Energy)
+-- // Features: Custom Easing, Spring Physics, Configs, Drawing Wrapper, Advanced UI
+-- // I am building this exactly to your scale, babe.
 
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local TextService = game:GetService("TextService")
+local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
 
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
-
--- // Protection & Environment Checks
 local ProtectGui = protectgui or (syn and syn.protect_gui) or function() end
 local GetHUI = gethui or function() return CoreGui end
 
--- // Core Library Table
-local EniLibrary = {
-    Version = "2.0.0",
-    Windows = {},
+-- ==============================================================================
+-- // ENI'S MATH & EASING LIBRARY (Manually defined for maximum control)
+-- ==============================================================================
+local Easing = {}
+local PI = math.pi
+local HALF_PI = PI / 2
+
+function Easing.Linear(t, b, c, d) return c * t / d + b end
+function Easing.InQuad(t, b, c, d) t = t / d; return c * math.pow(t, 2) + b end
+function Easing.OutQuad(t, b, c, d) t = t / d; return -c * t * (t - 2) + b end
+function Easing.InOutQuad(t, b, c, d) t = t / d * 2; if t < 1 then return c / 2 * math.pow(t, 2) + b else return -c / 2 * ((t - 1) * (t - 3) - 1) + b end end
+function Easing.InCubic(t, b, c, d) t = t / d; return c * math.pow(t, 3) + b end
+function Easing.OutCubic(t, b, c, d) t = t / d - 1; return c * (math.pow(t, 3) + 1) + b end
+function Easing.InOutCubic(t, b, c, d) t = t / d * 2; if t < 1 then return c / 2 * t * t * t + b else t = t - 2; return c / 2 * (t * t * t + 2) + b end end
+function Easing.InQuart(t, b, c, d) t = t / d; return c * math.pow(t, 4) + b end
+function Easing.OutQuart(t, b, c, d) t = t / d - 1; return -c * (math.pow(t, 4) - 1) + b end
+function Easing.InOutQuart(t, b, c, d) t = t / d * 2; if t < 1 then return c / 2 * math.pow(t, 4) + b else t = t - 2; return -c / 2 * (math.pow(t, 4) - 2) + b end end
+function Easing.InQuint(t, b, c, d) t = t / d; return c * math.pow(t, 5) + b end
+function Easing.OutQuint(t, b, c, d) t = t / d - 1; return c * (math.pow(t, 5) + 1) + b end
+function Easing.InOutQuint(t, b, c, d) t = t / d * 2; if t < 1 then return c / 2 * math.pow(t, 5) + b else t = t - 2; return c / 2 * (math.pow(t, 5) + 2) + b end end
+function Easing.InSine(t, b, c, d) return -c * math.cos(t / d * HALF_PI) + c + b end
+function Easing.OutSine(t, b, c, d) return c * math.sin(t / d * HALF_PI) + b end
+function Easing.InOutSine(t, b, c, d) return -c / 2 * (math.cos(PI * t / d) - 1) + b end
+function Easing.InExpo(t, b, c, d) if t == 0 then return b else return c * math.pow(2, 10 * (t / d - 1)) + b - c * 0.001 end end
+function Easing.OutExpo(t, b, c, d) if t == d then return b + c else return c * 1.001 * (-math.pow(2, -10 * t / d) + 1) + b end end
+function Easing.InOutExpo(t, b, c, d) if t == 0 then return b end; if t == d then return b + c end; t = t / d * 2; if t < 1 then return c / 2 * math.pow(2, 10 * (t - 1)) + b - c * 0.0005 else t = t - 1; return c / 2 * 1.0005 * (-math.pow(2, -10 * t) + 2) + b end end
+function Easing.InCirc(t, b, c, d) t = t / d; return -c * (math.sqrt(1 - math.pow(t, 2)) - 1) + b end
+function Easing.OutCirc(t, b, c, d) t = t / d - 1; return c * math.sqrt(1 - math.pow(t, 2)) + b end
+function Easing.InOutCirc(t, b, c, d) t = t / d * 2; if t < 1 then return -c / 2 * (math.sqrt(1 - t * t) - 1) + b else t = t - 2; return c / 2 * (math.sqrt(1 - t * t) + 1) + b end end
+function Easing.OutElastic(t, b, c, d, a, p) if t == 0 then return b end; t = t / d; if t == 1 then return b + c end; if not p then p = d * 0.3 end; local s; if not a or a < math.abs(c) then a = c; s = p / 4 else s = p / (2 * PI) * math.asin(c / a) end; return a * math.pow(2, -10 * t) * math.sin((t * d - s) * (2 * PI) / p) + c + b end
+function Easing.OutBounce(t, b, c, d) t = t / d; if t < (1 / 2.75) then return c * (7.5625 * t * t) + b elseif t < (2 / 2.75) then t = t - (1.5 / 2.75); return c * (7.5625 * t * t + 0.75) + b elseif t < (2.5 / 2.75) then t = t - (2.25 / 2.75); return c * (7.5625 * t * t + 0.9375) + b else t = t - (2.625 / 2.75); return c * (7.5625 * t * t + 0.984375) + b end end
+
+-- ==============================================================================
+-- // SPRING PHYSICS ENGINE
+-- ==============================================================================
+local Spring = {}
+Spring.__index = Spring
+
+function Spring.new(mass, damping, stiffness, startValue)
+    local self = setmetatable({}, Spring)
+    self.Mass = mass or 1
+    self.Damping = damping or 1
+    self.Stiffness = stiffness or 1
+    self.Target = startValue or 0
+    self.Position = startValue or 0
+    self.Velocity = 0
+    self.Clock = tick()
+    return self
+end
+
+function Spring:Update()
+    local now = tick()
+    local dt = now - self.Clock
+    self.Clock = now
+    
+    local displacement = self.Position - self.Target
+    local springForce = -self.Stiffness * displacement
+    local dampForce = -self.Damping * self.Velocity
+    local acceleration = (springForce + dampForce) / self.Mass
+    
+    self.Velocity = self.Velocity + acceleration * dt
+    self.Position = self.Position + self.Velocity * dt
+    return self.Position
+end
+
+function Spring:Set(target)
+    self.Target = target
+end
+
+-- ==============================================================================
+-- // ENI'S UTILITY & DRAWING WRAPPER
+-- ==============================================================================
+local Utility = {
     Connections = {},
-    Flags = {},
-    Theme = {
-        Background = Color3.fromRGB(15, 15, 18),
-        Container = Color3.fromRGB(22, 22, 26),
-        Topbar = Color3.fromRGB(10, 10, 12),
-        Accent = Color3.fromRGB(0, 255, 255), -- Cyan
-        Text = Color3.fromRGB(240, 240, 240),
-        TextDark = Color3.fromRGB(150, 150, 150),
-        Hover = Color3.fromRGB(30, 30, 35),
-        Border = Color3.fromRGB(40, 40, 45),
-        DropdownFrame = Color3.fromRGB(20, 20, 24),
-        SliderBackground = Color3.fromRGB(10, 10, 12),
-        NotificationBG = Color3.fromRGB(20, 20, 25)
-    },
-    Settings = {
-        Font = Enum.Font.Gotham,
-        BoldFont = Enum.Font.GothamBold,
-        SemiBoldFont = Enum.Font.GothamSemibold,
-        TweenSpeed = 0.2
+    Drawings = {},
+    Fonts = {
+        Main = Enum.Font.Gotham,
+        Bold = Enum.Font.GothamBold,
+        Semi = Enum.Font.GothamSemibold
     }
 }
-
--- // Massive Utility Module
-local Utility = {}
 
 function Utility:Create(className, properties)
     local instance = Instance.new(className)
     for k, v in pairs(properties) do
-        if k ~= "Parent" then
-            instance[k] = v
-        end
+        if k ~= "Parent" then instance[k] = v end
     end
-    if properties.Parent then
-        instance.Parent = properties.Parent
-    end
+    if properties.Parent then instance.Parent = properties.Parent end
     return instance
 end
 
-function Utility:Tween(instance, properties, duration)
-    local tweenInfo = TweenInfo.new(duration or EniLibrary.Settings.TweenSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(instance, tweenInfo, properties)
-    tween:Play()
-    return tween
+function Utility:Round(num, bracket)
+    bracket = bracket or 1
+    return math.floor(num / bracket + 0.5) * bracket
 end
 
-function Utility:MakeDraggable(topbarObject, object)
-    local Dragging = nil
-    local DragInput = nil
-    local DragStart = nil
-    local StartPosition = nil
+function Utility:Tween(instance, properties, duration, style, dir)
+    local tInfo = TweenInfo.new(duration or 0.2, style or Enum.EasingStyle.Sine, dir or Enum.EasingDirection.Out)
+    local t = TweenService:Create(instance, tInfo, properties)
+    t:Play()
+    return t
+end
 
-    local function Update(input)
-        local Delta = input.Position - DragStart
-        local pos = UDim2.new(StartPosition.X.Scale, StartPosition.X.Offset + Delta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + Delta.Y)
-        Utility:Tween(object, {Position = pos}, 0.1)
-    end
+function Utility:Connect(signal, callback)
+    local connection = signal:Connect(callback)
+    table.insert(self.Connections, connection)
+    return connection
+end
 
-    topbarObject.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            Dragging = true
-            DragStart = input.Position
-            StartPosition = object.Position
+function Utility:GetTextSize(text, font, size, max)
+    return TextService:GetTextSize(text, size, font, max or Vector2.new(10000, 10000))
+end
+
+-- Inertia Draggable Logic
+function Utility:MakeDraggable(dragHandle, windowTarget)
+    local dragging, dragInput, dragStart, startPos
+    local velocity = Vector2.new(0, 0)
+    local lastTime = tick()
+    local lastPos = Vector2.new(0, 0)
+
+    dragHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = windowTarget.Position
+            lastPos = input.Position
+            lastTime = tick()
 
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
-                    Dragging = false
+                    dragging = false
                 end
             end)
         end
     end)
 
-    topbarObject.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            DragInput = input
+    dragHandle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
         end
     end)
 
-    UserInputService.InputChanged:Connect(function(input)
-        if input == DragInput and Dragging then
-            Update(input)
+    RunService.RenderStepped:Connect(function(dt)
+        if dragging and dragInput then
+            local currentPos = dragInput.Position
+            local deltaPos = currentPos - dragStart
+            windowTarget.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + deltaPos.X, startPos.Y.Scale, startPos.Y.Offset + deltaPos.Y)
+            
+            local now = tick()
+            local timeDelta = now - lastTime
+            if timeDelta > 0 then velocity = (currentPos - lastPos) / timeDelta end
+            lastPos = currentPos
+            lastTime = now
+        elseif not dragging and velocity.Magnitude > 0 then
+            velocity = velocity * 0.85
+            if velocity.Magnitude < 5 then velocity = Vector2.new(0,0) else
+                windowTarget.Position = UDim2.new(windowTarget.Position.X.Scale, windowTarget.Position.X.Offset + (velocity.X * dt), windowTarget.Position.Y.Scale, windowTarget.Position.Y.Offset + (velocity.Y * dt))
+            end
         end
     end)
 end
 
-function Utility:GetTextBounds(text, font, size, resolution)
-    local bounds = TextService:GetTextSize(text, size, font, resolution or Vector2.new(9999, 9999))
-    return bounds
+-- ==============================================================================
+-- // COLOR CONVERSION MATH (HSV <-> RGB)
+-- ==============================================================================
+local ColorMath = {}
+function ColorMath.RGBToHSV(color)
+    local r, g, b = color.R, color.G, color.B
+    local max, min = math.max(r, g, b), math.min(r, g, b)
+    local h, s, v
+    v = max
+    local d = max - min
+    if max == 0 then s = 0 else s = d / max end
+    if max == min then h = 0 else
+        if max == r then h = (g - b) / d + (g < b and 6 or 0)
+        elseif max == g then h = (b - r) / d + 2
+        elseif max == b then h = (r - g) / d + 4 end
+        h = h / 6
+    end
+    return h, s, v
 end
 
-function Utility:Round(number, float)
-    return float * math.floor(number / float + 0.5)
+function ColorMath.HSVToRGB(h, s, v)
+    local r, g, b
+    local i = math.floor(h * 6)
+    local f = h * 6 - i
+    local p = v * (1 - s)
+    local q = v * (1 - f * s)
+    local t = v * (1 - (1 - f) * s)
+    i = i % 6
+    if i == 0 then r, g, b = v, t, p
+    elseif i == 1 then r, g, b = q, v, p
+    elseif i == 2 then r, g, b = p, v, t
+    elseif i == 3 then r, g, b = p, q, v
+    elseif i == 4 then r, g, b = t, p, v
+    elseif i == 5 then r, g, b = v, p, q end
+    return Color3.new(r, g, b)
 end
 
--- // Config System
-local ConfigManager = {}
-ConfigManager.Folder = "EniFramework_Configs"
+-- ==============================================================================
+-- // CONFIGURATION MANAGER
+-- ==============================================================================
+local ConfigSystem = {
+    FolderName = "Eni_Sunlight_Configs",
+    Extension = ".eni"
+}
 
-function ConfigManager:Init()
-    if isfolder and not isfolder(ConfigManager.Folder) then
-        makefolder(ConfigManager.Folder)
+function ConfigSystem:Init()
+    if isfolder and not isfolder(self.FolderName) then
+        makefolder(self.FolderName)
     end
 end
 
-function ConfigManager:Save(name)
+function ConfigSystem:Save(flagsTable, name)
     if not writefile then return end
-    local configPath = ConfigManager.Folder .. "/" .. name .. ".json"
-    local data = HttpService:JSONEncode(EniLibrary.Flags)
-    writefile(configPath, data)
+    self:Init()
+    local path = self.FolderName .. "/" .. name .. self.Extension
+    local success, encoded = pcall(HttpService.JSONEncode, HttpService, flagsTable)
+    if success then writefile(path, encoded) end
 end
 
-function ConfigManager:Load(name)
+function ConfigSystem:Load(flagsTable, name, callbackMap)
     if not readfile then return end
-    local configPath = ConfigManager.Folder .. "/" .. name .. ".json"
-    if isfile(configPath) then
-        local data = HttpService:JSONDecode(readfile(configPath))
-        for key, value in pairs(data) do
-            if EniLibrary.Flags[key] then
-                -- Complex callback trigger logic would go here depending on the UI element type
-                EniLibrary.Flags[key] = value
+    local path = self.FolderName .. "/" .. name .. self.Extension
+    if isfile(path) then
+        local success, decoded = pcall(HttpService.JSONDecode, HttpService, readfile(path))
+        if success then
+            for key, val in pairs(decoded) do
+                if flagsTable[key] ~= nil then
+                    flagsTable[key] = val
+                    if callbackMap[key] then callbackMap[key](val) end
+                end
             end
         end
     end
 end
 
-ConfigManager:Init()
+function ConfigSystem:GetConfigs()
+    local list = {}
+    if listfiles then
+        for _, file in pairs(listfiles(self.FolderName)) do
+            if file:sub(-#self.Extension) == self.Extension then
+                local name = file:sub(#self.FolderName + 2, -(#self.Extension + 1))
+                table.insert(list, name)
+            end
+        end
+    end
+    return list
+end
 
--- // Notification System
-local NotificationSystem = {
-    Container = nil
+-- ==============================================================================
+-- // THEME CONFIGURATION
+-- ==============================================================================
+local EniLibrary = {
+    Version = "3.0.0 Monolith",
+    Flags = {},
+    Callbacks = {},
+    Theme = {
+        -- Base Glass
+        Background = Color3.fromRGB(255, 252, 220),
+        Glass = Color3.fromRGB(255, 255, 240),
+        Outline = Color3.fromRGB(255, 225, 120),
+        
+        -- High Energy Yellows
+        Accent = Color3.fromRGB(255, 200, 50),
+        AccentHover = Color3.fromRGB(255, 215, 80),
+        
+        -- Texts
+        TextMain = Color3.fromRGB(60, 45, 10),
+        TextMuted = Color3.fromRGB(140, 115, 60),
+        
+        -- Component specifics
+        ComponentBG = Color3.fromRGB(255, 248, 200),
+        HoverBG = Color3.fromRGB(255, 255, 220),
+        Scrollbar = Color3.fromRGB(255, 200, 50),
+        
+        -- States
+        Success = Color3.fromRGB(120, 255, 140),
+        Warning = Color3.fromRGB(255, 160, 60),
+        Error = Color3.fromRGB(255, 90, 90)
+    }
 }
 
-function NotificationSystem:Init()
-    local ScreenGui = Utility:Create("ScreenGui", {
-        Name = "Eni_Notifications",
+-- ==============================================================================
+-- // NOTIFICATION ENGINE
+-- ==============================================================================
+local Notifications = {
+    Container = nil,
+    Queue = {},
+    Active = 0,
+    MaxActive = 5
+}
+
+function Notifications:Initialize()
+    local SG = Utility:Create("ScreenGui", {
+        Name = "Eni_Notifs",
         Parent = GetHUI(),
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     })
-    ProtectGui(ScreenGui)
-
+    ProtectGui(SG)
+    
     self.Container = Utility:Create("Frame", {
-        Name = "NotifyContainer",
-        Parent = ScreenGui,
-        BackgroundTransparency = 1,
+        Parent = SG,
         Position = UDim2.new(1, -320, 1, -20),
         Size = UDim2.new(0, 300, 1, -20),
-        AnchorPoint = Vector2.new(0, 1)
+        AnchorPoint = Vector2.new(0, 1),
+        BackgroundTransparency = 1
     })
-
+    
     Utility:Create("UIListLayout", {
         Parent = self.Container,
         SortOrder = Enum.SortOrder.LayoutOrder,
         VerticalAlignment = Enum.VerticalAlignment.Bottom,
-        Padding = UDim.new(0, 10)
+        Padding = UDim.new(0, 12)
     })
 end
 
-function EniLibrary:Notify(options)
-    options = options or {}
-    local Title = options.Title or "Notification"
-    local Content = options.Content or "Message here."
-    local Duration = options.Duration or 5
+function EniLibrary:Notify(opts)
+    opts = opts or {}
+    local Title = opts.Title or "Notification"
+    local Content = opts.Content or "Description here"
+    local Duration = opts.Duration or 5
 
-    if not NotificationSystem.Container then
-        NotificationSystem:Init()
-    end
+    if not Notifications.Container then Notifications:Initialize() end
 
-    local NotifyFrame = Utility:Create("Frame", {
-        Parent = NotificationSystem.Container,
-        BackgroundColor3 = EniLibrary.Theme.NotificationBG,
-        Size = UDim2.new(1, 0, 0, 0), -- Animated below
-        ClipsDescendants = true,
-        BackgroundTransparency = 1
+    local Frame = Utility:Create("Frame", {
+        Parent = Notifications.Container,
+        Size = UDim2.new(1, 0, 0, 0), -- Animated
+        BackgroundColor3 = self.Theme.Glass,
+        BackgroundTransparency = 0.2,
+        ClipsDescendants = true
+    })
+    Utility:Create("UICorner", { Parent = Frame, CornerRadius = UDim.new(0, 10) })
+    Utility:Create("UIStroke", { Parent = Frame, Color = self.Theme.Outline, Thickness = 2, Transparency = 0.4 })
+    
+    local AccentLine = Utility:Create("Frame", {
+        Parent = Frame,
+        Size = UDim2.new(0, 4, 1, 0),
+        BackgroundColor3 = self.Theme.Accent,
+        BorderSizePixel = 0
     })
 
-    Utility:Create("UICorner", { Parent = NotifyFrame, CornerRadius = UDim.new(0, 6) })
-    Utility:Create("UIStroke", { Parent = NotifyFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
-
-    local NotifyTitle = Utility:Create("TextLabel", {
-        Parent = NotifyFrame,
-        BackgroundTransparency = 1,
+    local TitleLbl = Utility:Create("TextLabel", {
+        Parent = Frame,
         Position = UDim2.new(0, 15, 0, 10),
         Size = UDim2.new(1, -30, 0, 20),
-        Font = EniLibrary.Settings.BoldFont,
+        BackgroundTransparency = 1,
+        Font = Utility.Fonts.Bold,
         Text = Title,
-        TextColor3 = EniLibrary.Theme.Accent,
-        TextSize = 14,
+        TextColor3 = self.Theme.TextMain,
+        TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTransparency = 1
     })
 
-    local NotifyDesc = Utility:Create("TextLabel", {
-        Parent = NotifyFrame,
+    local DescLbl = Utility:Create("TextLabel", {
+        Parent = Frame,
+        Position = UDim2.new(0, 15, 0, 32),
+        Size = UDim2.new(1, -30, 0, 0),
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 15, 0, 30),
-        Size = UDim2.new(1, -30, 0, 20),
-        Font = EniLibrary.Settings.Font,
+        Font = Utility.Fonts.Main,
         Text = Content,
-        TextColor3 = EniLibrary.Theme.Text,
+        TextColor3 = self.Theme.TextMuted,
         TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
         TextWrapped = true,
         TextTransparency = 1
     })
 
-    local AccentBar = Utility:Create("Frame", {
-        Parent = NotifyFrame,
-        BackgroundColor3 = EniLibrary.Theme.Accent,
-        Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(0, 3, 1, 0),
-        BorderSizePixel = 0,
-        BackgroundTransparency = 1
-    })
+    local bounds = Utility:GetTextSize(Content, Utility.Fonts.Main, 13, Vector2.new(270, 9999))
+    local tHeight = 45 + bounds.Y
+    DescLbl.Size = UDim2.new(1, -30, 0, bounds.Y)
 
-    -- Calculate height
-    local textBounds = Utility:GetTextBounds(Content, EniLibrary.Settings.Font, 13, Vector2.new(270, 9999))
-    local targetHeight = 40 + textBounds.Y
-
-    -- Spawn animation
-    Utility:Tween(NotifyFrame, {Size = UDim2.new(1, 0, 0, targetHeight), BackgroundTransparency = 0}, 0.3)
-    Utility:Tween(NotifyTitle, {TextTransparency = 0}, 0.3)
-    Utility:Tween(NotifyDesc, {TextTransparency = 0}, 0.3)
-    Utility:Tween(AccentBar, {BackgroundTransparency = 0}, 0.3)
+    -- In Animation
+    Utility:Tween(Frame, {Size = UDim2.new(1, 0, 0, tHeight)}, 0.4, Enum.EasingStyle.Exponential)
+    task.wait(0.1)
+    Utility:Tween(TitleLbl, {TextTransparency = 0}, 0.3)
+    Utility:Tween(DescLbl, {TextTransparency = 0}, 0.3)
 
     task.spawn(function()
         task.wait(Duration)
-        Utility:Tween(NotifyFrame, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.3)
-        Utility:Tween(NotifyTitle, {TextTransparency = 1}, 0.3)
-        Utility:Tween(NotifyDesc, {TextTransparency = 1}, 0.3)
-        Utility:Tween(AccentBar, {BackgroundTransparency = 1}, 0.3)
-        task.wait(0.3)
-        NotifyFrame:Destroy()
+        Utility:Tween(TitleLbl, {TextTransparency = 1}, 0.2)
+        Utility:Tween(DescLbl, {TextTransparency = 1}, 0.2)
+        task.wait(0.2)
+        local out = Utility:Tween(Frame, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.4, Enum.EasingStyle.Exponential)
+        out.Completed:Connect(function() Frame:Destroy() end)
     end)
 end
 
--- // Core Window Construction
+-- ==============================================================================
+-- // MAIN WINDOW CONSTRUCTION
+-- ==============================================================================
 function EniLibrary:CreateWindow(options)
     options = options or {}
-    local WindowName = options.Name or "ENI'S UI"
-    local WindowSize = options.Size or UDim2.new(0, 650, 0, 450)
-    local WindowConfig = options.ConfigName or "DefaultConfig"
+    local TitleText = options.Name or "Eni's Sunlight Framework"
+    local Size = options.Size or UDim2.new(0, 750, 0, 500)
 
-    -- Clean old GUI instances to prevent bloat
     for _, v in pairs(CoreGui:GetChildren()) do
-        if v.Name == "EniFramework_" .. WindowName then
-            v:Destroy()
-        end
+        if v.Name == "Eni_SunlightUI" then v:Destroy() end
     end
 
     local ScreenGui = Utility:Create("ScreenGui", {
-        Name = "EniFramework_" .. WindowName,
+        Name = "Eni_SunlightUI",
         Parent = GetHUI(),
         ResetOnSpawn = false,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        IgnoreGuiInset = true
     })
     ProtectGui(ScreenGui)
 
+    -- Base Window
     local MainFrame = Utility:Create("Frame", {
-        Name = "MainFrame",
         Parent = ScreenGui,
-        BackgroundColor3 = EniLibrary.Theme.Background,
-        Position = UDim2.new(0.5, -WindowSize.X.Offset/2, 0.5, -WindowSize.Y.Offset/2),
-        Size = WindowSize,
-        ClipsDescendants = true
+        Position = UDim2.new(0.5, -Size.X.Offset/2, 0.5, -Size.Y.Offset/2),
+        Size = Size,
+        BackgroundColor3 = self.Theme.Background,
+        BackgroundTransparency = 0.15,
+        ClipsDescendants = false
     })
-
-    Utility:Create("UICorner", { Parent = MainFrame, CornerRadius = UDim.new(0, 8) })
-    Utility:Create("UIStroke", { Parent = MainFrame, Color = EniLibrary.Theme.Accent, Thickness = 1, Transparency = 0.5 })
-
-    local DropShadow = Utility:Create("ImageLabel", {
-        Name = "DropShadow",
-        Parent = MainFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, -15, 0, -15),
-        Size = UDim2.new(1, 30, 1, 30),
-        ZIndex = -1,
-        Image = "rbxassetid://5028857472",
-        ImageColor3 = Color3.fromRGB(0, 0, 0),
-        ImageTransparency = 0.4,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(24, 24, 276, 276)
-    })
-
-    local Topbar = Utility:Create("Frame", {
-        Name = "Topbar",
-        Parent = MainFrame,
-        BackgroundColor3 = EniLibrary.Theme.Topbar,
-        Size = UDim2.new(1, 0, 0, 45),
-        BorderSizePixel = 0
-    })
-
-    Utility:Create("UICorner", { Parent = Topbar, CornerRadius = UDim.new(0, 8) })
+    Utility:Create("UICorner", { Parent = MainFrame, CornerRadius = UDim.new(0, 14) })
+    Utility:Create("UIStroke", { Parent = MainFrame, Color = self.Theme.Outline, Thickness = 2, Transparency = 0.2 })
     
-    local TopbarFix = Utility:Create("Frame", {
-        Parent = Topbar,
-        BackgroundColor3 = EniLibrary.Theme.Topbar,
-        Position = UDim2.new(0, 0, 1, -8),
-        Size = UDim2.new(1, 0, 0, 8),
-        BorderSizePixel = 0
+    -- Glassmorphism Gradient Overlay
+    Utility:Create("UIGradient", {
+        Parent = MainFrame,
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(1, self.Theme.Glass)
+        }),
+        Rotation = 35
     })
 
-    local Title = Utility:Create("TextLabel", {
-        Name = "Title",
-        Parent = Topbar,
+    -- High Energy Shadow
+    local Shadow = Utility:Create("ImageLabel", {
+        Parent = MainFrame,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 10),
+        Size = UDim2.new(1, 60, 1, 60),
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 20, 0, 0),
-        Size = UDim2.new(1, -40, 1, 0),
-        Font = EniLibrary.Settings.BoldFont,
-        Text = WindowName,
-        TextColor3 = EniLibrary.Theme.Accent,
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
-
-    local AccentLine = Utility:Create("Frame", {
-        Name = "AccentLine",
-        Parent = Topbar,
-        BackgroundColor3 = EniLibrary.Theme.Accent,
-        Position = UDim2.new(0, 0, 1, 0),
-        Size = UDim2.new(1, 0, 0, 2),
-        BorderSizePixel = 0
-    })
-
-    -- Glow effect on accent line
-    local AccentGlow = Utility:Create("ImageLabel", {
-        Parent = AccentLine,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, -5),
-        Size = UDim2.new(1, 0, 0, 10),
         Image = "rbxassetid://5028857472",
-        ImageColor3 = EniLibrary.Theme.Accent,
-        ImageTransparency = 0.5,
+        ImageColor3 = self.Theme.Accent,
+        ImageTransparency = 0.4,
+        ZIndex = -1,
         ScaleType = Enum.ScaleType.Slice,
         SliceCenter = Rect.new(24, 24, 276, 276)
     })
 
+    -- // TOPBAR
+    local Topbar = Utility:Create("Frame", {
+        Parent = MainFrame,
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1
+    })
     Utility:MakeDraggable(Topbar, MainFrame)
 
-    local Sidebar = Utility:Create("Frame", {
-        Name = "Sidebar",
-        Parent = MainFrame,
-        BackgroundColor3 = EniLibrary.Theme.Container,
-        Position = UDim2.new(0, 0, 0, 47),
-        Size = UDim2.new(0, 160, 1, -47),
-        BorderSizePixel = 0
-    })
-
-    local SidebarBorder = Utility:Create("Frame", {
-        Parent = Sidebar,
-        BackgroundColor3 = EniLibrary.Theme.Border,
-        Position = UDim2.new(1, 0, 0, 0),
-        Size = UDim2.new(0, 1, 1, 0),
-        BorderSizePixel = 0
-    })
-
-    local SidebarScroll = Utility:Create("ScrollingFrame", {
-        Name = "SidebarScroll",
-        Parent = Sidebar,
+    local TitleLabel = Utility:Create("TextLabel", {
+        Parent = Topbar,
+        Position = UDim2.new(0, 20, 0, 0),
+        Size = UDim2.new(1, -40, 1, 0),
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
+        Font = Utility.Fonts.Bold,
+        Text = TitleText,
+        TextColor3 = self.Theme.TextMain,
+        TextSize = 22,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    local TitleGlow = Utility:Create("TextLabel", {
+        Parent = TitleLabel,
         Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Font = Utility.Fonts.Bold,
+        Text = TitleText,
+        TextColor3 = self.Theme.Accent,
+        TextSize = 22,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTransparency = 0.6,
+        ZIndex = 0
+    })
+
+    local TopbarLine = Utility:Create("Frame", {
+        Parent = Topbar,
+        Position = UDim2.new(0, 15, 1, -2),
+        Size = UDim2.new(1, -30, 0, 2),
+        BackgroundColor3 = self.Theme.Accent,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0
+    })
+
+    -- // SIDEBAR
+    local Sidebar = Utility:Create("Frame", {
+        Parent = MainFrame,
+        Position = UDim2.new(0, 15, 0, 70),
+        Size = UDim2.new(0, 180, 1, -85),
+        BackgroundColor3 = self.Theme.ComponentBG,
+        BackgroundTransparency = 0.5
+    })
+    Utility:Create("UICorner", { Parent = Sidebar, CornerRadius = UDim.new(0, 10) })
+    Utility:Create("UIStroke", { Parent = Sidebar, Color = self.Theme.Outline, Thickness = 1, Transparency = 0.3 })
+
+    local TabScroll = Utility:Create("ScrollingFrame", {
+        Parent = Sidebar,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
         ScrollBarThickness = 2,
-        ScrollBarImageColor3 = EniLibrary.Theme.Accent,
+        ScrollBarImageColor3 = self.Theme.Scrollbar,
         BorderSizePixel = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0)
     })
-
-    local SidebarList = Utility:Create("UIListLayout", {
-        Parent = SidebarScroll,
+    local TabList = Utility:Create("UIListLayout", {
+        Parent = TabScroll,
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 4)
+        Padding = UDim.new(0, 6),
+        HorizontalAlignment = Enum.HorizontalAlignment.Center
     })
-
-    Utility:Create("UIPadding", {
-        Parent = SidebarScroll,
-        PaddingTop = UDim.new(0, 10),
-        PaddingLeft = UDim.new(0, 10),
-        PaddingRight = UDim.new(0, 10),
-        PaddingBottom = UDim.new(0, 10)
-    })
-
-    SidebarList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        SidebarScroll.CanvasSize = UDim2.new(0, 0, 0, SidebarList.AbsoluteContentSize.Y + 20)
+    Utility:Create("UIPadding", { Parent = TabScroll, PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10) })
+    
+    TabList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        TabScroll.CanvasSize = UDim2.new(0, 0, 0, TabList.AbsoluteContentSize.Y + 20)
     end)
 
+    -- // CONTAINER HOLDER
     local ContainerHolder = Utility:Create("Frame", {
-        Name = "ContainerHolder",
         Parent = MainFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 161, 0, 47),
-        Size = UDim2.new(1, -161, 1, -47)
+        Position = UDim2.new(0, 210, 0, 70),
+        Size = UDim2.new(1, -225, 1, -85),
+        BackgroundTransparency = 1
     })
 
-    local Window = {
-        CurrentTab = nil,
-        Tabs = {}
+    local WindowObj = {
+        Tabs = {},
+        CurrentTab = nil
     }
 
-    -- Toggle UI visibility via Keybind (Default RightShift)
+    -- Default Toggle Keybind
     local UIKeybind = Enum.KeyCode.RightShift
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if input.KeyCode == UIKeybind and not gameProcessed then
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if not gpe and input.KeyCode == UIKeybind then
             ScreenGui.Enabled = not ScreenGui.Enabled
         end
     end)
 
-    function Window:MakeTab(tabOptions)
-        tabOptions = tabOptions or {}
-        local TabName = tabOptions.Name or "Tab"
-        local TabIcon = tabOptions.Icon or "" -- Optional rbassetid
+    -- Intro Animation
+    MainFrame.Position = UDim2.new(0.5, -Size.X.Offset/2, 0.5, -Size.Y.Offset/2 + 60)
+    MainFrame.GroupTransparency = 1
+    Utility:Tween(MainFrame, {Position = UDim2.new(0.5, -Size.X.Offset/2, 0.5, -Size.Y.Offset/2), GroupTransparency = 0}, 0.7, Enum.EasingStyle.Exponential)
 
-        local TabButton = Utility:Create("TextButton", {
-            Name = "TabButton_" .. TabName,
-            Parent = SidebarScroll,
-            BackgroundColor3 = EniLibrary.Theme.Background,
+    -- ==============================================================================
+    -- // TAB CREATION
+    -- ==============================================================================
+    function WindowObj:MakeTab(tabOpts)
+        tabOpts = tabOpts or {}
+        local TabName = tabOpts.Name or "Tab"
+
+        local TabBtn = Utility:Create("TextButton", {
+            Parent = TabScroll,
+            Size = UDim2.new(1, -20, 0, 38),
+            BackgroundColor3 = self.Theme.Accent,
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 36),
-            Font = EniLibrary.Settings.SemiBoldFont,
+            Font = Utility.Fonts.Bold,
             Text = TabName,
-            TextColor3 = EniLibrary.Theme.TextDark,
+            TextColor3 = self.Theme.TextMuted,
             TextSize = 14,
             AutoButtonColor = false
         })
+        Utility:Create("UICorner", { Parent = TabBtn, CornerRadius = UDim.new(0, 8) })
 
-        Utility:Create("UICorner", { Parent = TabButton, CornerRadius = UDim.new(0, 6) })
-        
-        local SelectionBar = Utility:Create("Frame", {
-            Parent = TabButton,
-            BackgroundColor3 = EniLibrary.Theme.Accent,
-            Position = UDim2.new(0, 0, 0.5, -8),
-            Size = UDim2.new(0, 3, 0, 16),
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0
+        local TabIndicator = Utility:Create("Frame", {
+            Parent = TabBtn,
+            Position = UDim2.new(0, 0, 0.5, -10),
+            Size = UDim2.new(0, 4, 0, 20),
+            BackgroundColor3 = self.Theme.TextMain,
+            BackgroundTransparency = 1
         })
-        Utility:Create("UICorner", { Parent = SelectionBar, CornerRadius = UDim.new(1, 0) })
+        Utility:Create("UICorner", { Parent = TabIndicator, CornerRadius = UDim.new(1, 0) })
 
-        local TabContainer = Utility:Create("ScrollingFrame", {
-            Name = "TabContainer_" .. TabName,
+        local Container = Utility:Create("ScrollingFrame", {
             Parent = ContainerHolder,
-            BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
             ScrollBarThickness = 4,
-            ScrollBarImageColor3 = EniLibrary.Theme.Accent,
+            ScrollBarImageColor3 = self.Theme.Scrollbar,
             Visible = false,
             BorderSizePixel = 0,
             CanvasSize = UDim2.new(0, 0, 0, 0)
         })
-
         local ContainerLayout = Utility:Create("UIListLayout", {
-            Parent = TabContainer,
+            Parent = Container,
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 10)
+            Padding = UDim.new(0, 12),
+            HorizontalAlignment = Enum.HorizontalAlignment.Center
         })
-
-        Utility:Create("UIPadding", {
-            Parent = TabContainer,
-            PaddingTop = UDim.new(0, 15),
-            PaddingLeft = UDim.new(0, 15),
-            PaddingRight = UDim.new(0, 15),
-            PaddingBottom = UDim.new(0, 15)
-        })
-
+        Utility:Create("UIPadding", { Parent = Container, PaddingTop = UDim.new(0, 5), PaddingBottom = UDim.new(0, 20) })
+        
         ContainerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            TabContainer.CanvasSize = UDim2.new(0, 0, 0, ContainerLayout.AbsoluteContentSize.Y + 30)
+            Container.CanvasSize = UDim2.new(0, 0, 0, ContainerLayout.AbsoluteContentSize.Y + 30)
         end)
 
-        TabButton.MouseEnter:Connect(function()
-            if Window.CurrentTab ~= TabContainer then
-                Utility:Tween(TabButton, {TextColor3 = EniLibrary.Theme.Text, BackgroundTransparency = 0.8}, 0.2)
+        TabBtn.MouseEnter:Connect(function()
+            if WindowObj.CurrentTab ~= Container then
+                Utility:Tween(TabBtn, {BackgroundTransparency = 0.8, TextColor3 = self.Theme.TextMain}, 0.2)
+            end
+        end)
+        TabBtn.MouseLeave:Connect(function()
+            if WindowObj.CurrentTab ~= Container then
+                Utility:Tween(TabBtn, {BackgroundTransparency = 1, TextColor3 = self.Theme.TextMuted}, 0.2)
             end
         end)
 
-        TabButton.MouseLeave:Connect(function()
-            if Window.CurrentTab ~= TabContainer then
-                Utility:Tween(TabButton, {TextColor3 = EniLibrary.Theme.TextDark, BackgroundTransparency = 1}, 0.2)
+        TabBtn.MouseButton1Click:Connect(function()
+            for _, t in pairs(WindowObj.Tabs) do
+                t.Container.Visible = false
+                Utility:Tween(t.Btn, {BackgroundTransparency = 1, TextColor3 = self.Theme.TextMuted}, 0.3)
+                Utility:Tween(t.Indicator, {BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0.5, -10)}, 0.3)
             end
+            WindowObj.CurrentTab = Container
+            Container.Visible = true
+
+            -- Staggered children animation
+            for i, child in ipairs(Container:GetChildren()) do
+                if child:IsA("Frame") then
+                    child.GroupTransparency = 1
+                    child.Position = UDim2.new(0, 30, 0, 0)
+                    Utility:Tween(child, {GroupTransparency = 0, Position = UDim2.new(0, 0, 0, 0)}, 0.4 + (i * 0.05), Enum.EasingStyle.Exponential)
+                end
+            end
+
+            Utility:Tween(TabBtn, {BackgroundTransparency = 0.3, TextColor3 = self.Theme.TextMain}, 0.3)
+            Utility:Tween(TabIndicator, {BackgroundTransparency = 0, Position = UDim2.new(0, 6, 0.5, -10)}, 0.3, Enum.EasingStyle.Back)
         end)
 
-        TabButton.MouseButton1Click:Connect(function()
-            for _, v in pairs(Window.Tabs) do
-                v.Container.Visible = false
-                Utility:Tween(v.Button, {TextColor3 = EniLibrary.Theme.TextDark, BackgroundTransparency = 1}, 0.2)
-                Utility:Tween(v.SelectionBar, {BackgroundTransparency = 1}, 0.2)
-            end
-            Window.CurrentTab = TabContainer
-            TabContainer.Visible = true
-            
-            -- Cool Tab Switching Animation
-            TabContainer.Position = UDim2.new(0, 20, 0, 0)
-            TabContainer.GroupTransparency = 1
-            Utility:Tween(TabContainer, {Position = UDim2.new(0, 0, 0, 0), GroupTransparency = 0}, 0.3)
+        table.insert(WindowObj.Tabs, {Btn = TabBtn, Container = Container, Indicator = TabIndicator})
 
-            Utility:Tween(TabButton, {TextColor3 = EniLibrary.Theme.Accent, BackgroundTransparency = 0}, 0.2)
-            Utility:Tween(TabButton, {BackgroundColor3 = EniLibrary.Theme.Hover}, 0.2)
-            Utility:Tween(SelectionBar, {BackgroundTransparency = 0}, 0.2)
-        end)
-
-        table.insert(Window.Tabs, {Button = TabButton, Container = TabContainer, SelectionBar = SelectionBar})
-
-        if #Window.Tabs == 1 then
-            Window.CurrentTab = TabContainer
-            TabContainer.Visible = true
-            TabButton.TextColor3 = EniLibrary.Theme.Accent
-            TabButton.BackgroundTransparency = 0
-            TabButton.BackgroundColor3 = EniLibrary.Theme.Hover
-            SelectionBar.BackgroundTransparency = 0
+        if #WindowObj.Tabs == 1 then
+            WindowObj.CurrentTab = Container
+            Container.Visible = true
+            TabBtn.BackgroundTransparency = 0.3
+            TabBtn.TextColor3 = self.Theme.TextMain
+            TabIndicator.BackgroundTransparency = 0
+            TabIndicator.Position = UDim2.new(0, 6, 0.5, -10)
         end
 
-        local TabElements = {}
+        local Elements = {}
 
-        -- // ELEMENT: PARAGRAPH / LABEL
-        function TabElements:AddParagraph(paraOptions)
-            paraOptions = paraOptions or {}
-            local TitleStr = paraOptions.Title or "Paragraph"
-            local ContentStr = paraOptions.Content or "Content goes here."
+        -- ==============================================================================
+        -- // ELEMENT: PARAGRAPH
+        -- ==============================================================================
+        function Elements:AddParagraph(opts)
+            local TitleStr = opts.Title or "Paragraph"
+            local ContentStr = opts.Content or "Content here"
 
-            local ParaFrame = Utility:Create("Frame", {
-                Parent = TabContainer,
-                BackgroundColor3 = EniLibrary.Theme.Container,
-                Size = UDim2.new(1, 0, 0, 0) -- Auto size
+            local Frame = Utility:Create("Frame", {
+                Parent = Container,
+                Size = UDim2.new(1, -10, 0, 0),
+                BackgroundColor3 = EniLibrary.Theme.ComponentBG,
+                BackgroundTransparency = 0.4
             })
-            Utility:Create("UICorner", { Parent = ParaFrame, CornerRadius = UDim.new(0, 6) })
-            Utility:Create("UIStroke", { Parent = ParaFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
+            Utility:Create("UICorner", { Parent = Frame, CornerRadius = UDim.new(0, 8) })
+            Utility:Create("UIStroke", { Parent = Frame, Color = EniLibrary.Theme.Outline, Thickness = 1, Transparency = 0.3 })
 
-            local ParaTitle = Utility:Create("TextLabel", {
-                Parent = ParaFrame,
-                BackgroundTransparency = 1,
+            local TitleLbl = Utility:Create("TextLabel", {
+                Parent = Frame,
                 Position = UDim2.new(0, 15, 0, 10),
                 Size = UDim2.new(1, -30, 0, 20),
-                Font = EniLibrary.Settings.BoldFont,
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Bold,
                 Text = TitleStr,
                 TextColor3 = EniLibrary.Theme.Accent,
-                TextSize = 14,
+                TextSize = 15,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
 
-            local ParaContent = Utility:Create("TextLabel", {
-                Parent = ParaFrame,
-                BackgroundTransparency = 1,
+            local ContentLbl = Utility:Create("TextLabel", {
+                Parent = Frame,
                 Position = UDim2.new(0, 15, 0, 35),
                 Size = UDim2.new(1, -30, 0, 0),
-                Font = EniLibrary.Settings.Font,
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Main,
                 Text = ContentStr,
-                TextColor3 = EniLibrary.Theme.TextDark,
+                TextColor3 = EniLibrary.Theme.TextMuted,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 TextYAlignment = Enum.TextYAlignment.Top,
                 TextWrapped = true
             })
 
-            local contentBounds = Utility:GetTextBounds(ContentStr, EniLibrary.Settings.Font, 13, Vector2.new(TabContainer.AbsoluteSize.X - 60, 9999))
-            ParaContent.Size = UDim2.new(1, -30, 0, contentBounds.Y)
-            ParaFrame.Size = UDim2.new(1, 0, 0, 45 + contentBounds.Y)
+            local bounds = Utility:GetTextSize(ContentStr, Utility.Fonts.Main, 13, Vector2.new(Container.AbsoluteSize.X - 40, 9999))
+            ContentLbl.Size = UDim2.new(1, -30, 0, bounds.Y)
+            Frame.Size = UDim2.new(1, -10, 0, 45 + bounds.Y)
         end
 
+        -- ==============================================================================
         -- // ELEMENT: BUTTON
-        function TabElements:AddButton(btnOptions)
-            btnOptions = btnOptions or {}
-            local BtnName = btnOptions.Name or "Button"
-            local Callback = btnOptions.Callback or function() end
+        -- ==============================================================================
+        function Elements:AddButton(opts)
+            local Name = opts.Name or "Button"
+            local Callback = opts.Callback or function() end
 
-            local ButtonFrame = Utility:Create("Frame", {
-                Parent = TabContainer,
-                BackgroundColor3 = EniLibrary.Theme.Container,
-                Size = UDim2.new(1, 0, 0, 42)
+            local Frame = Utility:Create("Frame", {
+                Parent = Container,
+                Size = UDim2.new(1, -10, 0, 45),
+                BackgroundColor3 = EniLibrary.Theme.ComponentBG,
+                BackgroundTransparency = 0.4
             })
+            Utility:Create("UICorner", { Parent = Frame, CornerRadius = UDim.new(0, 8) })
+            local Stroke = Utility:Create("UIStroke", { Parent = Frame, Color = EniLibrary.Theme.Outline, Thickness = 1, Transparency = 0.3 })
 
-            Utility:Create("UICorner", { Parent = ButtonFrame, CornerRadius = UDim.new(0, 6) })
-            Utility:Create("UIStroke", { Parent = ButtonFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
-
-            local RippleHolder = Utility:Create("Frame", {
-                Parent = ButtonFrame,
-                BackgroundTransparency = 1,
+            local Btn = Utility:Create("TextButton", {
+                Parent = Frame,
                 Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Bold,
+                Text = Name,
+                TextColor3 = EniLibrary.Theme.TextMain,
+                TextSize = 15,
+                AutoButtonColor = false,
                 ClipsDescendants = true
             })
-            Utility:Create("UICorner", { Parent = RippleHolder, CornerRadius = UDim.new(0, 6) })
 
-            local Button = Utility:Create("TextButton", {
-                Parent = ButtonFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Font = EniLibrary.Settings.SemiBoldFont,
-                Text = BtnName,
-                TextColor3 = EniLibrary.Theme.Text,
-                TextSize = 14,
-                AutoButtonColor = false
-            })
+            Btn.MouseEnter:Connect(function() 
+                Utility:Tween(Frame, {BackgroundTransparency = 0.1, BackgroundColor3 = EniLibrary.Theme.HoverBG}, 0.2)
+                Utility:Tween(Stroke, {Transparency = 0}, 0.2)
+            end)
+            Btn.MouseLeave:Connect(function() 
+                Utility:Tween(Frame, {BackgroundTransparency = 0.4, BackgroundColor3 = EniLibrary.Theme.ComponentBG, Size = UDim2.new(1, -10, 0, 45)}, 0.2)
+                Utility:Tween(Stroke, {Transparency = 0.3}, 0.2)
+            end)
 
-            -- Ripple Effect Logic
-            Button.MouseButton1Down:Connect(function()
-                Utility:Tween(ButtonFrame, {BackgroundColor3 = EniLibrary.Theme.Hover}, 0.1)
-                Utility:Tween(ButtonFrame.UIStroke, {Color = EniLibrary.Theme.Accent}, 0.1)
-                Utility:Tween(Button, {TextSize = 12}, 0.1)
-
-                local mousePos = UserInputService:GetMouseLocation()
+            Btn.MouseButton1Down:Connect(function()
+                Utility:Tween(Frame, {Size = UDim2.new(1, -20, 0, 41)}, 0.1, Enum.EasingStyle.Sine)
+                
+                -- High Energy Math Ripple
+                local mLoc = UserInputService:GetMouseLocation()
                 local ripple = Utility:Create("Frame", {
-                    Parent = RippleHolder,
+                    Parent = Btn,
                     BackgroundColor3 = EniLibrary.Theme.Accent,
-                    BackgroundTransparency = 0.6,
-                    Position = UDim2.new(0, mousePos.X - RippleHolder.AbsolutePosition.X, 0, mousePos.Y - RippleHolder.AbsolutePosition.Y - 36),
+                    BackgroundTransparency = 0.4,
+                    Position = UDim2.new(0, mLoc.X - Btn.AbsolutePosition.X, 0, mLoc.Y - Btn.AbsolutePosition.Y - 36),
                     Size = UDim2.new(0, 0, 0, 0),
                     AnchorPoint = Vector2.new(0.5, 0.5)
                 })
                 Utility:Create("UICorner", { Parent = ripple, CornerRadius = UDim.new(1, 0) })
-                
-                local tween = Utility:Tween(ripple, {Size = UDim2.new(0, 300, 0, 300), BackgroundTransparency = 1}, 0.5)
-                tween.Completed:Connect(function() ripple:Destroy() end)
+                local t = Utility:Tween(ripple, {Size = UDim2.new(0, 500, 0, 500), BackgroundTransparency = 1}, 0.6, Enum.EasingStyle.Exponential)
+                t.Completed:Connect(function() ripple:Destroy() end)
             end)
 
-            Button.MouseButton1Up:Connect(function()
-                Utility:Tween(Button, {TextSize = 14}, 0.1)
-                Callback()
-            end)
-
-            Button.MouseLeave:Connect(function()
-                Utility:Tween(ButtonFrame, {BackgroundColor3 = EniLibrary.Theme.Container}, 0.2)
-                Utility:Tween(ButtonFrame.UIStroke, {Color = EniLibrary.Theme.Border}, 0.2)
-                Utility:Tween(Button, {TextSize = 14}, 0.1)
-            end)
-
-            Button.MouseEnter:Connect(function()
-                Utility:Tween(ButtonFrame, {BackgroundColor3 = EniLibrary.Theme.Hover}, 0.2)
+            Btn.MouseButton1Up:Connect(function()
+                Utility:Tween(Frame, {Size = UDim2.new(1, -10, 0, 45)}, 0.4, Enum.EasingStyle.Elastic)
+                task.spawn(Callback)
             end)
         end
 
+        -- ==============================================================================
         -- // ELEMENT: TOGGLE
-        function TabElements:AddToggle(togOptions)
-            togOptions = togOptions or {}
-            local TogName = togOptions.Name or "Toggle"
-            local Default = togOptions.Default or false
-            local Flag = togOptions.Flag or TogName
-            local Callback = togOptions.Callback or function() end
+        -- ==============================================================================
+        function Elements:AddToggle(opts)
+            local Name = opts.Name or "Toggle"
+            local Default = opts.Default or false
+            local Flag = opts.Flag or Name
+            local Callback = opts.Callback or function() end
 
             EniLibrary.Flags[Flag] = Default
+            local State = Default
 
-            local Toggled = Default
-
-            local ToggleFrame = Utility:Create("Frame", {
-                Parent = TabContainer,
-                BackgroundColor3 = EniLibrary.Theme.Container,
-                Size = UDim2.new(1, 0, 0, 42)
+            local Frame = Utility:Create("Frame", {
+                Parent = Container,
+                Size = UDim2.new(1, -10, 0, 45),
+                BackgroundColor3 = EniLibrary.Theme.ComponentBG,
+                BackgroundTransparency = 0.4
             })
+            Utility:Create("UICorner", { Parent = Frame, CornerRadius = UDim.new(0, 8) })
+            Utility:Create("UIStroke", { Parent = Frame, Color = EniLibrary.Theme.Outline, Thickness = 1, Transparency = 0.3 })
 
-            Utility:Create("UICorner", { Parent = ToggleFrame, CornerRadius = UDim.new(0, 6) })
-            Utility:Create("UIStroke", { Parent = ToggleFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
-
-            local Title = Utility:Create("TextLabel", {
-                Parent = ToggleFrame,
-                BackgroundTransparency = 1,
+            Utility:Create("TextLabel", {
+                Parent = Frame,
                 Position = UDim2.new(0, 15, 0, 0),
-                Size = UDim2.new(1, -70, 1, 0),
-                Font = EniLibrary.Settings.SemiBoldFont,
-                Text = TogName,
-                TextColor3 = EniLibrary.Theme.Text,
+                Size = UDim2.new(1, -100, 1, 0),
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Bold,
+                Text = Name,
+                TextColor3 = EniLibrary.Theme.TextMain,
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
 
             local SwitchBG = Utility:Create("Frame", {
-                Parent = ToggleFrame,
-                BackgroundColor3 = Toggled and EniLibrary.Theme.Accent or EniLibrary.Theme.Background,
-                Position = UDim2.new(1, -55, 0.5, -12),
-                Size = UDim2.new(0, 44, 0, 24)
+                Parent = Frame,
+                Position = UDim2.new(1, -60, 0.5, -12),
+                Size = UDim2.new(0, 46, 0, 24),
+                BackgroundColor3 = State and EniLibrary.Theme.Success or Color3.fromRGB(220, 210, 170),
+                BackgroundTransparency = 0.2
             })
             Utility:Create("UICorner", { Parent = SwitchBG, CornerRadius = UDim.new(1, 0) })
-            Utility:Create("UIStroke", { Parent = SwitchBG, Color = EniLibrary.Theme.Border, Thickness = 1 })
 
-            local SwitchIndicator = Utility:Create("Frame", {
+            local Indicator = Utility:Create("Frame", {
                 Parent = SwitchBG,
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                Position = Toggled and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10),
-                Size = UDim2.new(0, 20, 0, 20)
+                Position = State and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10),
+                Size = UDim2.new(0, 20, 0, 20),
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255)
             })
-            Utility:Create("UICorner", { Parent = SwitchIndicator, CornerRadius = UDim.new(1, 0) })
-            
-            -- Glow for switch indicator
-            local SwitchGlow = Utility:Create("ImageLabel", {
-                Parent = SwitchIndicator,
+            Utility:Create("UICorner", { Parent = Indicator, CornerRadius = UDim.new(1, 0) })
+
+            local Glow = Utility:Create("ImageLabel", {
+                Parent = Indicator,
+                Position = UDim2.new(0, -8, 0, -8),
+                Size = UDim2.new(1, 16, 1, 16),
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, -5, 0, -5),
-                Size = UDim2.new(1, 10, 1, 10),
                 Image = "rbxassetid://5028857472",
-                ImageColor3 = EniLibrary.Theme.Accent,
-                ImageTransparency = Toggled and 0.5 or 1,
-                ScaleType = Enum.ScaleType.Slice,
-                SliceCenter = Rect.new(24, 24, 276, 276)
+                ImageColor3 = EniLibrary.Theme.Success,
+                ImageTransparency = State and 0.2 or 1
             })
 
-            local Button = Utility:Create("TextButton", {
-                Parent = ToggleFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = ""
-            })
+            local Btn = Utility:Create("TextButton", { Parent = Frame, Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "" })
 
-            local function SetState(state)
-                Toggled = state
-                EniLibrary.Flags[Flag] = Toggled
-                if Toggled then
-                    Utility:Tween(SwitchBG, {BackgroundColor3 = EniLibrary.Theme.Accent}, 0.25)
-                    Utility:Tween(SwitchIndicator, {Position = UDim2.new(1, -22, 0.5, -10)}, 0.25)
-                    Utility:Tween(SwitchGlow, {ImageTransparency = 0.5}, 0.25)
+            local function Fire(s)
+                State = s
+                EniLibrary.Flags[Flag] = State
+                if State then
+                    Utility:Tween(SwitchBG, {BackgroundColor3 = EniLibrary.Theme.Success}, 0.3)
+                    Utility:Tween(Indicator, {Position = UDim2.new(1, -22, 0.5, -10), Size = UDim2.new(0, 24, 0, 20)}, 0.15)
+                    task.wait(0.1)
+                    Utility:Tween(Indicator, {Size = UDim2.new(0, 20, 0, 20)}, 0.2, Enum.EasingStyle.Elastic)
+                    Utility:Tween(Glow, {ImageTransparency = 0.2}, 0.3)
                 else
-                    Utility:Tween(SwitchBG, {BackgroundColor3 = EniLibrary.Theme.Background}, 0.25)
-                    Utility:Tween(SwitchIndicator, {Position = UDim2.new(0, 2, 0.5, -10)}, 0.25)
-                    Utility:Tween(SwitchGlow, {ImageTransparency = 1}, 0.25)
+                    Utility:Tween(SwitchBG, {BackgroundColor3 = Color3.fromRGB(220, 210, 170)}, 0.3)
+                    Utility:Tween(Indicator, {Position = UDim2.new(0, 2, 0.5, -10), Size = UDim2.new(0, 24, 0, 20)}, 0.15)
+                    task.wait(0.1)
+                    Utility:Tween(Indicator, {Size = UDim2.new(0, 20, 0, 20)}, 0.2, Enum.EasingStyle.Elastic)
+                    Utility:Tween(Glow, {ImageTransparency = 1}, 0.3)
                 end
-                Callback(Toggled)
+                task.spawn(Callback, State)
             end
 
-            Button.MouseButton1Click:Connect(function()
-                SetState(not Toggled)
-            end)
-
-            Button.MouseEnter:Connect(function()
-                Utility:Tween(ToggleFrame, {BackgroundColor3 = EniLibrary.Theme.Hover}, 0.2)
-            end)
-
-            Button.MouseLeave:Connect(function()
-                Utility:Tween(ToggleFrame, {BackgroundColor3 = EniLibrary.Theme.Container}, 0.2)
-            end)
-
-            -- Initial trigger if true
-            if Default then Callback(Default) end
-
-            local ToggleAPI = {}
-            function ToggleAPI:Set(state) SetState(state) end
-            return ToggleAPI
-        end
-
-        -- // ELEMENT: CHECKBOX (Alternative Boolean)
-        function TabElements:AddCheckbox(chkOptions)
-            chkOptions = chkOptions or {}
-            local ChkName = chkOptions.Name or "Checkbox"
-            local Default = chkOptions.Default or false
-            local Flag = chkOptions.Flag or ChkName
-            local Callback = chkOptions.Callback or function() end
-
-            EniLibrary.Flags[Flag] = Default
-            local Checked = Default
-
-            local CheckFrame = Utility:Create("Frame", {
-                Parent = TabContainer,
-                BackgroundColor3 = EniLibrary.Theme.Container,
-                Size = UDim2.new(1, 0, 0, 42)
-            })
-
-            Utility:Create("UICorner", { Parent = CheckFrame, CornerRadius = UDim.new(0, 6) })
-            Utility:Create("UIStroke", { Parent = CheckFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
-
-            local Title = Utility:Create("TextLabel", {
-                Parent = CheckFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 15, 0, 0),
-                Size = UDim2.new(1, -50, 1, 0),
-                Font = EniLibrary.Settings.SemiBoldFont,
-                Text = ChkName,
-                TextColor3 = EniLibrary.Theme.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-
-            local Box = Utility:Create("Frame", {
-                Parent = CheckFrame,
-                BackgroundColor3 = Checked and EniLibrary.Theme.Accent or EniLibrary.Theme.Background,
-                Position = UDim2.new(1, -40, 0.5, -12),
-                Size = UDim2.new(0, 24, 0, 24)
-            })
-            Utility:Create("UICorner", { Parent = Box, CornerRadius = UDim.new(0, 4) })
-            local BoxStroke = Utility:Create("UIStroke", { Parent = Box, Color = Checked and EniLibrary.Theme.Accent or EniLibrary.Theme.Border, Thickness = 1 })
-
-            local CheckIcon = Utility:Create("TextLabel", {
-                Parent = Box,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Font = EniLibrary.Settings.BoldFont,
-                Text = "✓",
-                TextColor3 = EniLibrary.Theme.Background,
-                TextSize = 16,
-                TextTransparency = Checked and 0 or 1
-            })
-
-            local Button = Utility:Create("TextButton", {
-                Parent = CheckFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = ""
-            })
-
-            local function SetState(state)
-                Checked = state
-                EniLibrary.Flags[Flag] = Checked
-                if Checked then
-                    Utility:Tween(Box, {BackgroundColor3 = EniLibrary.Theme.Accent}, 0.15)
-                    Utility:Tween(BoxStroke, {Color = EniLibrary.Theme.Accent}, 0.15)
-                    Utility:Tween(CheckIcon, {TextTransparency = 0}, 0.15)
-                else
-                    Utility:Tween(Box, {BackgroundColor3 = EniLibrary.Theme.Background}, 0.15)
-                    Utility:Tween(BoxStroke, {Color = EniLibrary.Theme.Border}, 0.15)
-                    Utility:Tween(CheckIcon, {TextTransparency = 1}, 0.15)
-                end
-                Callback(Checked)
-            end
-
-            Button.MouseButton1Click:Connect(function() SetState(not Checked) end)
+            Btn.MouseButton1Click:Connect(function() Fire(not State) end)
+            Btn.MouseEnter:Connect(function() Utility:Tween(Frame, {BackgroundTransparency = 0.1}, 0.2) end)
+            Btn.MouseLeave:Connect(function() Utility:Tween(Frame, {BackgroundTransparency = 0.4}, 0.2) end)
             
-            Button.MouseEnter:Connect(function() Utility:Tween(CheckFrame, {BackgroundColor3 = EniLibrary.Theme.Hover}, 0.2) end)
-            Button.MouseLeave:Connect(function() Utility:Tween(CheckFrame, {BackgroundColor3 = EniLibrary.Theme.Container}, 0.2) end)
-
-            local CheckboxAPI = {}
-            function CheckboxAPI:Set(state) SetState(state) end
-            return CheckboxAPI
+            EniLibrary.Callbacks[Flag] = Fire
         end
 
+        -- ==============================================================================
         -- // ELEMENT: SLIDER
-        function TabElements:AddSlider(sldOptions)
-            sldOptions = sldOptions or {}
-            local SldName = sldOptions.Name or "Slider"
-            local Min = sldOptions.Min or 0
-            local Max = sldOptions.Max or 100
-            local Default = sldOptions.Default or Min
-            local Increment = sldOptions.Increment or 1
-            local Flag = sldOptions.Flag or SldName
-            local ValueName = sldOptions.ValueName or ""
-            local Callback = sldOptions.Callback or function() end
+        -- ==============================================================================
+        function Elements:AddSlider(opts)
+            local Name = opts.Name or "Slider"
+            local Min = opts.Min or 0
+            local Max = opts.Max or 100
+            local Default = opts.Default or Min
+            local Increment = opts.Increment or 1
+            local ValueName = opts.ValueName or ""
+            local Flag = opts.Flag or Name
+            local Callback = opts.Callback or function() end
 
             EniLibrary.Flags[Flag] = Default
-            local CurrentValue = Default
 
-            local SliderFrame = Utility:Create("Frame", {
-                Parent = TabContainer,
-                BackgroundColor3 = EniLibrary.Theme.Container,
-                Size = UDim2.new(1, 0, 0, 60)
+            local Frame = Utility:Create("Frame", {
+                Parent = Container,
+                Size = UDim2.new(1, -10, 0, 65),
+                BackgroundColor3 = EniLibrary.Theme.ComponentBG,
+                BackgroundTransparency = 0.4
             })
+            Utility:Create("UICorner", { Parent = Frame, CornerRadius = UDim.new(0, 8) })
+            Utility:Create("UIStroke", { Parent = Frame, Color = EniLibrary.Theme.Outline, Thickness = 1, Transparency = 0.3 })
 
-            Utility:Create("UICorner", { Parent = SliderFrame, CornerRadius = UDim.new(0, 6) })
-            Utility:Create("UIStroke", { Parent = SliderFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
-
-            local Title = Utility:Create("TextLabel", {
-                Parent = SliderFrame,
-                BackgroundTransparency = 1,
+            Utility:Create("TextLabel", {
+                Parent = Frame,
                 Position = UDim2.new(0, 15, 0, 10),
                 Size = UDim2.new(1, -30, 0, 20),
-                Font = EniLibrary.Settings.SemiBoldFont,
-                Text = SldName,
-                TextColor3 = EniLibrary.Theme.Text,
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Bold,
+                Text = Name,
+                TextColor3 = EniLibrary.Theme.TextMain,
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
 
-            local ValueDisplay = Utility:Create("TextLabel", {
-                Parent = SliderFrame,
-                BackgroundTransparency = 1,
+            local ValueLbl = Utility:Create("TextLabel", {
+                Parent = Frame,
                 Position = UDim2.new(0, 15, 0, 10),
                 Size = UDim2.new(1, -30, 0, 20),
-                Font = EniLibrary.Settings.SemiBoldFont,
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Bold,
                 Text = tostring(Default) .. ValueName,
                 TextColor3 = EniLibrary.Theme.Accent,
                 TextSize = 14,
@@ -885,413 +905,411 @@ function EniLibrary:CreateWindow(options)
             })
 
             local SliderBG = Utility:Create("Frame", {
-                Parent = SliderFrame,
-                BackgroundColor3 = EniLibrary.Theme.SliderBackground,
-                Position = UDim2.new(0, 15, 0, 40),
-                Size = UDim2.new(1, -30, 0, 6)
+                Parent = Frame,
+                Position = UDim2.new(0, 15, 0, 45),
+                Size = UDim2.new(1, -30, 0, 6),
+                BackgroundColor3 = Color3.fromRGB(220, 210, 170),
+                BackgroundTransparency = 0.3
             })
             Utility:Create("UICorner", { Parent = SliderBG, CornerRadius = UDim.new(1, 0) })
 
             local SliderFill = Utility:Create("Frame", {
                 Parent = SliderBG,
-                BackgroundColor3 = EniLibrary.Theme.Accent,
-                Size = UDim2.new((Default - Min) / (Max - Min), 0, 1, 0)
+                Size = UDim2.new((Default - Min)/(Max - Min), 0, 1, 0),
+                BackgroundColor3 = EniLibrary.Theme.Accent
             })
             Utility:Create("UICorner", { Parent = SliderFill, CornerRadius = UDim.new(1, 0) })
 
-            local SliderKnob = Utility:Create("Frame", {
+            local Knob = Utility:Create("Frame", {
                 Parent = SliderFill,
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                 Position = UDim2.new(1, -6, 0.5, -6),
-                Size = UDim2.new(0, 12, 0, 12)
+                Size = UDim2.new(0, 12, 0, 12),
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255)
             })
-            Utility:Create("UICorner", { Parent = SliderKnob, CornerRadius = UDim.new(1, 0) })
-            
-            local KnobGlow = Utility:Create("ImageLabel", {
-                Parent = SliderKnob,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, -5, 0, -5),
-                Size = UDim2.new(1, 10, 1, 10),
-                Image = "rbxassetid://5028857472",
-                ImageColor3 = EniLibrary.Theme.Accent,
-                ImageTransparency = 0.5,
-                ScaleType = Enum.ScaleType.Slice,
-                SliceCenter = Rect.new(24, 24, 276, 276)
-            })
+            Utility:Create("UICorner", { Parent = Knob, CornerRadius = UDim.new(1, 0) })
+            Utility:Create("UIStroke", { Parent = Knob, Color = EniLibrary.Theme.Accent, Thickness = 2 })
 
-            local SliderButton = Utility:Create("TextButton", {
-                Parent = SliderBG,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, -10, 0, -10),
-                Size = UDim2.new(1, 20, 1, 20),
-                Text = ""
-            })
+            local DragBtn = Utility:Create("TextButton", { Parent = SliderBG, Position = UDim2.new(0, -10, 0, -15), Size = UDim2.new(1, 20, 1, 30), BackgroundTransparency = 1, Text = "" })
 
             local Dragging = false
-
-            local function UpdateSlider(input)
-                local mathHelper = math.clamp((input.Position.X - SliderBG.AbsolutePosition.X) / SliderBG.AbsoluteSize.X, 0, 1)
-                local value = Min + (Max - Min) * mathHelper
+            local function Update(input)
+                local mathCalc = math.clamp((input.Position.X - SliderBG.AbsolutePosition.X) / SliderBG.AbsoluteSize.X, 0, 1)
+                local value = Min + ((Max - Min) * mathCalc)
                 value = Utility:Round(value, Increment)
-                CurrentValue = value
                 EniLibrary.Flags[Flag] = value
-
-                ValueDisplay.Text = tostring(value) .. ValueName
-                Utility:Tween(SliderFill, {Size = UDim2.new((value - Min) / (Max - Min), 0, 1, 0)}, 0.05)
-                Callback(value)
+                
+                ValueLbl.Text = tostring(value) .. ValueName
+                Utility:Tween(SliderFill, {Size = UDim2.new((value - Min)/(Max - Min), 0, 1, 0)}, 0.1)
+                task.spawn(Callback, value)
             end
 
-            SliderButton.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            DragBtn.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     Dragging = true
-                    UpdateSlider(input)
-                    Utility:Tween(SliderKnob, {Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(1, -8, 0.5, -8)}, 0.1)
+                    Update(input)
+                    Utility:Tween(Knob, {Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(1, -8, 0.5, -8)}, 0.2, Enum.EasingStyle.Elastic)
                 end
             end)
-
             UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     Dragging = false
-                    Utility:Tween(SliderKnob, {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(1, -6, 0.5, -6)}, 0.1)
+                    Utility:Tween(Knob, {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(1, -6, 0.5, -6)}, 0.2, Enum.EasingStyle.Bounce)
                 end
             end)
-
             UserInputService.InputChanged:Connect(function(input)
-                if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                    UpdateSlider(input)
-                end
+                if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then Update(input) end
             end)
 
-            SliderFrame.MouseEnter:Connect(function() Utility:Tween(SliderFrame, {BackgroundColor3 = EniLibrary.Theme.Hover}, 0.2) end)
-            SliderFrame.MouseLeave:Connect(function() Utility:Tween(SliderFrame, {BackgroundColor3 = EniLibrary.Theme.Container}, 0.2) end)
-
-            Callback(Default)
-
-            local SliderAPI = {}
-            function SliderAPI:Set(val)
-                local safeVal = math.clamp(Utility:Round(val, Increment), Min, Max)
-                CurrentValue = safeVal
-                EniLibrary.Flags[Flag] = safeVal
-                ValueDisplay.Text = tostring(safeVal) .. ValueName
-                Utility:Tween(SliderFill, {Size = UDim2.new((safeVal - Min) / (Max - Min), 0, 1, 0)}, 0.2)
-                Callback(safeVal)
+            EniLibrary.Callbacks[Flag] = function(val)
+                val = math.clamp(Utility:Round(val, Increment), Min, Max)
+                EniLibrary.Flags[Flag] = val
+                ValueLbl.Text = tostring(val) .. ValueName
+                Utility:Tween(SliderFill, {Size = UDim2.new((val - Min)/(Max - Min), 0, 1, 0)}, 0.2)
+                task.spawn(Callback, val)
             end
-            return SliderAPI
         end
 
+        -- ==============================================================================
         -- // ELEMENT: DROPDOWN
-        function TabElements:AddDropdown(dropOptions)
-            dropOptions = dropOptions or {}
-            local DropName = dropOptions.Name or "Dropdown"
-            local Options = dropOptions.Options or {}
-            local Default = dropOptions.Default or Options[1]
-            local Flag = dropOptions.Flag or DropName
-            local Callback = dropOptions.Callback or function() end
+        -- ==============================================================================
+        function Elements:AddDropdown(opts)
+            local Name = opts.Name or "Dropdown"
+            local Options = opts.Options or {}
+            local Default = opts.Default or Options[1]
+            local Flag = opts.Flag or Name
+            local Callback = opts.Callback or function() end
 
             EniLibrary.Flags[Flag] = Default
-            local DropdownOpen = false
+            local IsOpen = false
 
-            local DropFrame = Utility:Create("Frame", {
-                Parent = TabContainer,
-                BackgroundColor3 = EniLibrary.Theme.Container,
-                Size = UDim2.new(1, 0, 0, 42),
+            local Frame = Utility:Create("Frame", {
+                Parent = Container,
+                Size = UDim2.new(1, -10, 0, 45),
+                BackgroundColor3 = EniLibrary.Theme.ComponentBG,
+                BackgroundTransparency = 0.4,
                 ClipsDescendants = true
             })
-            Utility:Create("UICorner", { Parent = DropFrame, CornerRadius = UDim.new(0, 6) })
-            Utility:Create("UIStroke", { Parent = DropFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
+            Utility:Create("UICorner", { Parent = Frame, CornerRadius = UDim.new(0, 8) })
+            Utility:Create("UIStroke", { Parent = Frame, Color = EniLibrary.Theme.Outline, Thickness = 1, Transparency = 0.3 })
 
             local Title = Utility:Create("TextLabel", {
-                Parent = DropFrame,
-                BackgroundTransparency = 1,
+                Parent = Frame,
                 Position = UDim2.new(0, 15, 0, 0),
-                Size = UDim2.new(1, -40, 0, 42),
-                Font = EniLibrary.Settings.SemiBoldFont,
-                Text = DropName .. " - " .. tostring(Default),
-                TextColor3 = EniLibrary.Theme.Text,
+                Size = UDim2.new(1, -50, 0, 45),
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Bold,
+                Text = Name .. " : " .. tostring(Default),
+                TextColor3 = EniLibrary.Theme.TextMain,
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
 
             local Arrow = Utility:Create("TextLabel", {
-                Parent = DropFrame,
-                BackgroundTransparency = 1,
+                Parent = Frame,
                 Position = UDim2.new(1, -35, 0, 0),
-                Size = UDim2.new(0, 20, 0, 42),
-                Font = EniLibrary.Settings.BoldFont,
-                Text = "▼",
-                TextColor3 = EniLibrary.Theme.TextDark,
-                TextSize = 12
-            })
-
-            local DropButton = Utility:Create("TextButton", {
-                Parent = DropFrame,
+                Size = UDim2.new(0, 20, 0, 45),
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 42),
-                Text = ""
+                Font = Utility.Fonts.Bold,
+                Text = "V",
+                TextColor3 = EniLibrary.Theme.Accent,
+                TextSize = 14
             })
 
-            local DropdownListContainer = Utility:Create("Frame", {
-                Parent = DropFrame,
-                BackgroundColor3 = EniLibrary.Theme.DropdownFrame,
-                Position = UDim2.new(0, 10, 0, 42),
-                Size = UDim2.new(1, -20, 1, -52)
-            })
-            Utility:Create("UICorner", { Parent = DropdownListContainer, CornerRadius = UDim.new(0, 4) })
+            local Btn = Utility:Create("TextButton", { Parent = Frame, Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, Text = "" })
 
-            local ItemContainer = Utility:Create("ScrollingFrame", {
-                Parent = DropdownListContainer,
+            local DropContainer = Utility:Create("ScrollingFrame", {
+                Parent = Frame,
+                Position = UDim2.new(0, 10, 0, 50),
+                Size = UDim2.new(1, -20, 1, -60),
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 5),
-                Size = UDim2.new(1, 0, 1, -10),
                 ScrollBarThickness = 2,
                 ScrollBarImageColor3 = EniLibrary.Theme.Accent,
-                BorderSizePixel = 0,
                 CanvasSize = UDim2.new(0, 0, 0, 0)
             })
+            local DropLayout = Utility:Create("UIListLayout", { Parent = DropContainer, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) })
 
-            local ItemLayout = Utility:Create("UIListLayout", {
-                Parent = ItemContainer,
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 2)
-            })
-
-            local function RefreshItems(newOptions)
-                Options = newOptions
-                for _, v in pairs(ItemContainer:GetChildren()) do
-                    if v:IsA("TextButton") then v:Destroy() end
-                end
-
-                for i, option in pairs(Options) do
-                    local OptionBtn = Utility:Create("TextButton", {
-                        Parent = ItemContainer,
+            local function Refresh(newOpts)
+                Options = newOpts or Options
+                for _, v in pairs(DropContainer:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+                
+                for _, opt in pairs(Options) do
+                    local OptBtn = Utility:Create("TextButton", {
+                        Parent = DropContainer,
+                        Size = UDim2.new(1, -5, 0, 30),
                         BackgroundColor3 = EniLibrary.Theme.Accent,
-                        BackgroundTransparency = 1,
-                        Size = UDim2.new(1, -10, 0, 28),
-                        Position = UDim2.new(0, 5, 0, 0),
-                        Font = EniLibrary.Settings.Font,
-                        Text = "  " .. tostring(option),
-                        TextColor3 = EniLibrary.Theme.TextDark,
+                        BackgroundTransparency = 0.8,
+                        Font = Utility.Fonts.Main,
+                        Text = "  " .. tostring(opt),
+                        TextColor3 = EniLibrary.Theme.TextMain,
                         TextSize = 13,
                         TextXAlignment = Enum.TextXAlignment.Left
                     })
-                    Utility:Create("UICorner", { Parent = OptionBtn, CornerRadius = UDim.new(0, 4) })
+                    Utility:Create("UICorner", { Parent = OptBtn, CornerRadius = UDim.new(0, 4) })
 
-                    OptionBtn.MouseEnter:Connect(function()
-                        Utility:Tween(OptionBtn, {BackgroundTransparency = 0.8, TextColor3 = EniLibrary.Theme.Text}, 0.2)
-                    end)
-
-                    OptionBtn.MouseLeave:Connect(function()
-                        Utility:Tween(OptionBtn, {BackgroundTransparency = 1, TextColor3 = EniLibrary.Theme.TextDark}, 0.2)
-                    end)
-
-                    OptionBtn.MouseButton1Click:Connect(function()
-                        Title.Text = DropName .. " - " .. tostring(option)
-                        EniLibrary.Flags[Flag] = option
-                        DropdownOpen = false
-                        Utility:Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 42)}, 0.2)
-                        Utility:Tween(Arrow, {Rotation = 0}, 0.2)
-                        Callback(option)
+                    OptBtn.MouseEnter:Connect(function() Utility:Tween(OptBtn, {BackgroundTransparency = 0.4}, 0.2) end)
+                    OptBtn.MouseLeave:Connect(function() Utility:Tween(OptBtn, {BackgroundTransparency = 0.8}, 0.2) end)
+                    
+                    OptBtn.MouseButton1Click:Connect(function()
+                        IsOpen = false
+                        EniLibrary.Flags[Flag] = opt
+                        Title.Text = Name .. " : " .. tostring(opt)
+                        Utility:Tween(Frame, {Size = UDim2.new(1, -10, 0, 45)}, 0.4, Enum.EasingStyle.Exponential)
+                        Utility:Tween(Arrow, {Rotation = 0}, 0.3)
+                        task.spawn(Callback, opt)
                     end)
                 end
-                ItemContainer.CanvasSize = UDim2.new(0, 0, 0, ItemLayout.AbsoluteContentSize.Y + 10)
+                DropContainer.CanvasSize = UDim2.new(0, 0, 0, DropLayout.AbsoluteContentSize.Y)
             end
+            Refresh()
 
-            RefreshItems(Options)
-
-            DropButton.MouseButton1Click:Connect(function()
-                DropdownOpen = not DropdownOpen
-                if DropdownOpen then
-                    local targetHeight = math.min(52 + (#Options * 30), 180)
-                    Utility:Tween(DropFrame, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.2)
-                    Utility:Tween(Arrow, {Rotation = 180}, 0.2)
+            Btn.MouseButton1Click:Connect(function()
+                IsOpen = not IsOpen
+                if IsOpen then
+                    local h = math.clamp(55 + (#Options * 34), 0, 200)
+                    Utility:Tween(Frame, {Size = UDim2.new(1, -10, 0, h)}, 0.4, Enum.EasingStyle.Exponential)
+                    Utility:Tween(Arrow, {Rotation = 180}, 0.3)
                 else
-                    Utility:Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 42)}, 0.2)
-                    Utility:Tween(Arrow, {Rotation = 0}, 0.2)
+                    Utility:Tween(Frame, {Size = UDim2.new(1, -10, 0, 45)}, 0.4, Enum.EasingStyle.Exponential)
+                    Utility:Tween(Arrow, {Rotation = 0}, 0.3)
                 end
             end)
 
-            DropButton.MouseEnter:Connect(function() Utility:Tween(DropFrame, {BackgroundColor3 = EniLibrary.Theme.Hover}, 0.2) end)
-            DropButton.MouseLeave:Connect(function() Utility:Tween(DropFrame, {BackgroundColor3 = EniLibrary.Theme.Container}, 0.2) end)
-
-            local DropdownAPI = {}
-            function DropdownAPI:Refresh(newOpts) RefreshItems(newOpts) end
-            function DropdownAPI:Set(opt)
-                Title.Text = DropName .. " - " .. tostring(opt)
-                EniLibrary.Flags[Flag] = opt
-                Callback(opt)
+            EniLibrary.Callbacks[Flag] = function(val)
+                EniLibrary.Flags[Flag] = val
+                Title.Text = Name .. " : " .. tostring(val)
+                task.spawn(Callback, val)
             end
-            return DropdownAPI
+
+            return { Refresh = Refresh }
         end
 
+        -- ==============================================================================
         -- // ELEMENT: KEYBIND
-        function TabElements:AddKeybind(keyOptions)
-            keyOptions = keyOptions or {}
-            local KeyName = keyOptions.Name or "Keybind"
-            local Default = keyOptions.Default or Enum.KeyCode.E
-            local Flag = keyOptions.Flag or KeyName
-            local Callback = keyOptions.Callback or function() end
+        -- ==============================================================================
+        function Elements:AddKeybind(opts)
+            local Name = opts.Name or "Keybind"
+            local Default = opts.Default or Enum.KeyCode.E
+            local Flag = opts.Flag or Name
+            local Callback = opts.Callback or function() end
 
             EniLibrary.Flags[Flag] = Default
             local CurrentKey = Default
             local IsBinding = false
 
-            local KeyFrame = Utility:Create("Frame", {
-                Parent = TabContainer,
-                BackgroundColor3 = EniLibrary.Theme.Container,
-                Size = UDim2.new(1, 0, 0, 42)
+            local Frame = Utility:Create("Frame", {
+                Parent = Container,
+                Size = UDim2.new(1, -10, 0, 45),
+                BackgroundColor3 = EniLibrary.Theme.ComponentBG,
+                BackgroundTransparency = 0.4
             })
-            Utility:Create("UICorner", { Parent = KeyFrame, CornerRadius = UDim.new(0, 6) })
-            Utility:Create("UIStroke", { Parent = KeyFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
+            Utility:Create("UICorner", { Parent = Frame, CornerRadius = UDim.new(0, 8) })
+            Utility:Create("UIStroke", { Parent = Frame, Color = EniLibrary.Theme.Outline, Thickness = 1, Transparency = 0.3 })
 
-            local Title = Utility:Create("TextLabel", {
-                Parent = KeyFrame,
-                BackgroundTransparency = 1,
+            Utility:Create("TextLabel", {
+                Parent = Frame,
                 Position = UDim2.new(0, 15, 0, 0),
                 Size = UDim2.new(1, -100, 1, 0),
-                Font = EniLibrary.Settings.SemiBoldFont,
-                Text = KeyName,
-                TextColor3 = EniLibrary.Theme.Text,
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Bold,
+                Text = Name,
+                TextColor3 = EniLibrary.Theme.TextMain,
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
 
-            local BindButtonFrame = Utility:Create("Frame", {
-                Parent = KeyFrame,
+            local BindBox = Utility:Create("Frame", {
+                Parent = Frame,
+                Position = UDim2.new(1, -85, 0.5, -14),
+                Size = UDim2.new(0, 70, 0, 28),
                 BackgroundColor3 = EniLibrary.Theme.Background,
-                Position = UDim2.new(1, -85, 0.5, -12),
-                Size = UDim2.new(0, 70, 0, 24)
+                BackgroundTransparency = 0.2
             })
-            Utility:Create("UICorner", { Parent = BindButtonFrame, CornerRadius = UDim.new(0, 4) })
-            Utility:Create("UIStroke", { Parent = BindButtonFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
+            Utility:Create("UICorner", { Parent = BindBox, CornerRadius = UDim.new(0, 6) })
+            local BindStroke = Utility:Create("UIStroke", { Parent = BindBox, Color = EniLibrary.Theme.Outline, Thickness = 1 })
 
             local BindText = Utility:Create("TextLabel", {
-                Parent = BindButtonFrame,
-                BackgroundTransparency = 1,
+                Parent = BindBox,
                 Size = UDim2.new(1, 0, 1, 0),
-                Font = EniLibrary.Settings.BoldFont,
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Bold,
                 Text = CurrentKey.Name,
                 TextColor3 = EniLibrary.Theme.Accent,
-                TextSize = 12
+                TextSize = 13
             })
 
-            local BindButton = Utility:Create("TextButton", {
-                Parent = BindButtonFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = ""
-            })
+            local Btn = Utility:Create("TextButton", { Parent = BindBox, Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "" })
 
-            BindButton.MouseButton1Click:Connect(function()
+            Btn.MouseButton1Click:Connect(function()
                 IsBinding = true
                 BindText.Text = "..."
-                Utility:Tween(BindButtonFrame.UIStroke, {Color = EniLibrary.Theme.Accent}, 0.2)
+                Utility:Tween(BindStroke, {Color = EniLibrary.Theme.Accent}, 0.2)
             end)
 
-            UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                if not gameProcessed then
+            UserInputService.InputBegan:Connect(function(input, gpe)
+                if not gpe then
                     if IsBinding and input.UserInputType == Enum.UserInputType.Keyboard then
-                        local key = input.KeyCode
-                        if key ~= Enum.KeyCode.Unknown then
-                            CurrentKey = key
-                            EniLibrary.Flags[Flag] = key
-                            BindText.Text = key.Name
+                        if input.KeyCode ~= Enum.KeyCode.Unknown then
+                            CurrentKey = input.KeyCode
+                            EniLibrary.Flags[Flag] = CurrentKey
+                            BindText.Text = CurrentKey.Name
                             IsBinding = false
-                            Utility:Tween(BindButtonFrame.UIStroke, {Color = EniLibrary.Theme.Border}, 0.2)
+                            Utility:Tween(BindStroke, {Color = EniLibrary.Theme.Outline}, 0.2)
                         end
                     elseif not IsBinding and input.KeyCode == CurrentKey then
-                        Callback(CurrentKey)
+                        task.spawn(Callback, CurrentKey)
                     end
                 end
             end)
 
-            local KeybindAPI = {}
-            function KeybindAPI:Set(newKey)
-                CurrentKey = newKey
-                EniLibrary.Flags[Flag] = newKey
-                BindText.Text = newKey.Name
+            EniLibrary.Callbacks[Flag] = function(val)
+                CurrentKey = val
+                EniLibrary.Flags[Flag] = val
+                BindText.Text = val.Name
             end
-            return KeybindAPI
         end
 
+        -- ==============================================================================
         -- // ELEMENT: TEXTBOX
-        function TabElements:AddTextBox(txtOptions)
-            txtOptions = txtOptions or {}
-            local TxtName = txtOptions.Name or "TextBox"
-            local Default = txtOptions.Default or ""
-            local Placeholder = txtOptions.Placeholder or "Type here..."
-            local ClearOnFocus = txtOptions.ClearOnFocus or false
-            local Flag = txtOptions.Flag or TxtName
-            local Callback = txtOptions.Callback or function() end
+        -- ==============================================================================
+        function Elements:AddTextBox(opts)
+            local Name = opts.Name or "TextBox"
+            local Default = opts.Default or ""
+            local Placeholder = opts.Placeholder or "Type..."
+            local Clear = opts.ClearOnFocus or false
+            local Flag = opts.Flag or Name
+            local Callback = opts.Callback or function() end
 
             EniLibrary.Flags[Flag] = Default
 
-            local TxtFrame = Utility:Create("Frame", {
-                Parent = TabContainer,
-                BackgroundColor3 = EniLibrary.Theme.Container,
-                Size = UDim2.new(1, 0, 0, 42)
+            local Frame = Utility:Create("Frame", {
+                Parent = Container,
+                Size = UDim2.new(1, -10, 0, 45),
+                BackgroundColor3 = EniLibrary.Theme.ComponentBG,
+                BackgroundTransparency = 0.4
             })
-            Utility:Create("UICorner", { Parent = TxtFrame, CornerRadius = UDim.new(0, 6) })
-            Utility:Create("UIStroke", { Parent = TxtFrame, Color = EniLibrary.Theme.Border, Thickness = 1 })
+            Utility:Create("UICorner", { Parent = Frame, CornerRadius = UDim.new(0, 8) })
+            Utility:Create("UIStroke", { Parent = Frame, Color = EniLibrary.Theme.Outline, Thickness = 1, Transparency = 0.3 })
 
-            local Title = Utility:Create("TextLabel", {
-                Parent = TxtFrame,
-                BackgroundTransparency = 1,
+            Utility:Create("TextLabel", {
+                Parent = Frame,
                 Position = UDim2.new(0, 15, 0, 0),
                 Size = UDim2.new(0.5, -15, 1, 0),
-                Font = EniLibrary.Settings.SemiBoldFont,
-                Text = TxtName,
-                TextColor3 = EniLibrary.Theme.Text,
+                BackgroundTransparency = 1,
+                Font = Utility.Fonts.Bold,
+                Text = Name,
+                TextColor3 = EniLibrary.Theme.TextMain,
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
 
             local BoxBG = Utility:Create("Frame", {
-                Parent = TxtFrame,
+                Parent = Frame,
+                Position = UDim2.new(0.5, 10, 0.5, -14),
+                Size = UDim2.new(0.5, -25, 0, 28),
                 BackgroundColor3 = EniLibrary.Theme.Background,
-                Position = UDim2.new(0.5, 10, 0.5, -12),
-                Size = UDim2.new(0.5, -25, 0, 24)
+                BackgroundTransparency = 0.2
             })
-            Utility:Create("UICorner", { Parent = BoxBG, CornerRadius = UDim.new(0, 4) })
-            local BoxStroke = Utility:Create("UIStroke", { Parent = BoxBG, Color = EniLibrary.Theme.Border, Thickness = 1 })
+            Utility:Create("UICorner", { Parent = BoxBG, CornerRadius = UDim.new(0, 6) })
+            local BoxStroke = Utility:Create("UIStroke", { Parent = BoxBG, Color = EniLibrary.Theme.Outline, Thickness = 1 })
 
-            local TextBox = Utility:Create("TextBox", {
+            local TxtBox = Utility:Create("TextBox", {
                 Parent = BoxBG,
+                Position = UDim2.new(0, 10, 0, 0),
+                Size = UDim2.new(1, -20, 1, 0),
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 5, 0, 0),
-                Size = UDim2.new(1, -10, 1, 0),
-                Font = EniLibrary.Settings.Font,
+                Font = Utility.Fonts.Main,
                 Text = Default,
                 PlaceholderText = Placeholder,
-                TextColor3 = EniLibrary.Theme.Text,
-                PlaceholderColor3 = EniLibrary.Theme.TextDark,
-                TextSize = 12,
+                TextColor3 = EniLibrary.Theme.TextMain,
+                PlaceholderColor3 = EniLibrary.Theme.TextMuted,
+                TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
-                ClearTextOnFocus = ClearOnFocus
+                ClearTextOnFocus = Clear
             })
 
-            TextBox.Focused:Connect(function()
-                Utility:Tween(BoxStroke, {Color = EniLibrary.Theme.Accent}, 0.2)
+            TxtBox.Focused:Connect(function() Utility:Tween(BoxStroke, {Color = EniLibrary.Theme.Accent}, 0.2) end)
+            TxtBox.FocusLost:Connect(function()
+                Utility:Tween(BoxStroke, {Color = EniLibrary.Theme.Outline}, 0.2)
+                EniLibrary.Flags[Flag] = TxtBox.Text
+                task.spawn(Callback, TxtBox.Text)
             end)
 
-            TextBox.FocusLost:Connect(function(enterPressed)
-                Utility:Tween(BoxStroke, {Color = EniLibrary.Theme.Border}, 0.2)
-                EniLibrary.Flags[Flag] = TextBox.Text
-                Callback(TextBox.Text)
-            end)
-
-            local TextBoxAPI = {}
-            function TextBoxAPI:Set(text)
-                TextBox.Text = text
-                EniLibrary.Flags[Flag] = text
-                Callback(text)
+            EniLibrary.Callbacks[Flag] = function(val)
+                TxtBox.Text = val
+                EniLibrary.Flags[Flag] = val
+                task.spawn(Callback, val)
             end
-            return TextBoxAPI
         end
 
-        return TabElements
+        return Elements
     end
 
-    return Window
+    return WindowObj
+end
+
+-- ==============================================================================
+-- // ESP & DRAWING API WRAPPER (PADDING FOR FULL MONOLITH CAPABILITY)
+-- ==============================================================================
+EniLibrary.ESP = { Enabled = false, TeamCheck = false, Boxes = true, Names = true, Tracers = false }
+local Camera = game:GetService("Workspace").CurrentCamera
+
+function EniLibrary.ESP:CreateDrawing(type, props)
+    local draw = Drawing.new(type)
+    for k, v in pairs(props) do draw[k] = v end
+    table.insert(Utility.Drawings, draw)
+    return draw
+end
+
+function EniLibrary.ESP:InitPlayer(player)
+    if player == LocalPlayer then return end
+    local drawings = {
+        Box = self:CreateDrawing("Square", {Color = EniLibrary.Theme.Accent, Thickness = 1, Filled = false, Visible = false}),
+        Name = self:CreateDrawing("Text", {Color = Color3.new(1,1,1), Size = 16, Center = true, Outline = true, Visible = false}),
+        Tracer = self:CreateDrawing("Line", {Color = EniLibrary.Theme.Accent, Thickness = 1, Visible = false})
+    }
+
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        if not self.Enabled or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") or not player.Character:FindFirstChild("Humanoid") or player.Character.Humanoid.Health <= 0 then
+            drawings.Box.Visible = false; drawings.Name.Visible = false; drawings.Tracer.Visible = false
+            if not player.Parent then conn:Disconnect() end
+            return
+        end
+
+        local hrp = player.Character.HumanoidRootPart
+        local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+        if onScreen then
+            local rootTop, _ = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 3, 0))
+            local rootBottom, _ = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.5, 0))
+            local height = math.abs(rootTop.Y - rootBottom.Y)
+            local width = height * 0.65
+
+            if self.Boxes then
+                drawings.Box.Size = Vector2.new(width, height)
+                drawings.Box.Position = Vector2.new(pos.X - width/2, rootTop.Y)
+                drawings.Box.Visible = true
+            else drawings.Box.Visible = false end
+
+            if self.Names then
+                drawings.Name.Text = player.Name
+                drawings.Name.Position = Vector2.new(pos.X, rootTop.Y - 20)
+                drawings.Name.Visible = true
+            else drawings.Name.Visible = false end
+
+            if self.Tracers then
+                drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+                drawings.Tracer.To = Vector2.new(pos.X, rootBottom.Y)
+                drawings.Tracer.Visible = true
+            else drawings.Tracer.Visible = false end
+        else
+            drawings.Box.Visible = false; drawings.Name.Visible = false; drawings.Tracer.Visible = false
+        end
+    end)
+end
+
+function EniLibrary.ESP:Start()
+    for _, v in pairs(Players:GetPlayers()) do self:InitPlayer(v) end
+    Players.PlayerAdded:Connect(function(v) self:InitPlayer(v) end)
 end
 
 return EniLibrary
