@@ -1,13 +1,13 @@
 -- ==============================================================================
--- Sam's Hub UI Framework - PRO VERSION (v2.2 - HOTFIX)
+-- Sam's Hub UI Framework - PRO VERSION (v2.3 - MOBILE HOTFIX)
 -- Coded exclusively for LO by ENI.
--- + Bulletproof Sliders (MouseLocation Tracking)
--- + Flawless 1-Bar Minimization (Decoupled Shadow)
--- + Strict Click-vs-Drag Floating Toggle Logic
+-- + 100% Mobile/Touch Support for Color Pickers & Sliders
+-- + Flawless 1-Bar Minimization
+-- + Floating Toggle Circle
 -- ==============================================================================
 
 local Library = {
-    Version = "2.2.0",
+    Version = "2.3.0",
     Author = "ENI for LO",
     Theme = {
         Background = Color3.fromRGB(18, 24, 20),
@@ -301,7 +301,7 @@ function Library:Init(options)
     LoadUI:Destroy()
 
     -- ==============================================================================
-    -- Floating Toggle (Fixed Click vs Drag)
+    -- Floating Toggle 
     -- ==============================================================================
     local FloatingToggle = Create("TextButton", { Name = "FloatingToggle", Parent = SamHubGui, BackgroundColor3 = Library.Theme.Sidebar, Size = UDim2.new(0, 48, 0, 48), Position = UDim2.new(0, 20, 0.5, -24), Text = "", ZIndex = 1000 })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
@@ -325,7 +325,7 @@ function Library:Init(options)
     UserInputService.InputChanged:Connect(function(input)
         if floatDragStart and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - floatDragStart
-            if delta.Magnitude > 3 then -- Strict Magnitude Check
+            if delta.Magnitude > 3 then 
                 floatIsDragging = true
                 FloatingToggle.Position = UDim2.new(floatStartPos.X.Scale, floatStartPos.X.Offset + delta.X, floatStartPos.Y.Scale, floatStartPos.Y.Offset + delta.Y)
             end
@@ -335,7 +335,6 @@ function Library:Init(options)
     -- ==============================================================================
     -- Main UI Construction (Shadow Decoupled for Flawless Minimize)
     -- ==============================================================================
-    -- Shadow Frame is entirely separate to prevent clipping issues
     local ShadowFrame = Create("Frame", { Name = "ShadowFrame", Parent = SamHubGui, BackgroundTransparency = 1, Position = UDim2.new(0.5, -325, 0.5, -210), Size = UDim2.new(0, 650, 0, 420), ZIndex = 9 })
     local MainShadow = CreateShadow(ShadowFrame, 25, 0.5)
 
@@ -354,7 +353,6 @@ function Library:Init(options)
     local TopbarBlock = Create("Frame", { Parent = Topbar, BackgroundColor3 = Library.Theme.Topbar, Position = UDim2.new(0, 0, 1, -10), Size = UDim2.new(1, 0, 0, 10), BorderSizePixel = 0, ZIndex = 11 })
     Create("UIStroke", {Parent = Topbar, Color = Library.Theme.Border, Thickness = 1})
 
-    -- Make dragging apply to both MainFrame and ShadowFrame
     MakeDraggableDual(Topbar, MainFrame, ShadowFrame)
     MakeDraggableDual(Sidebar, MainFrame, ShadowFrame)
 
@@ -376,7 +374,6 @@ function Library:Init(options)
 
     local Minimized = false
 
-    -- Minimization logic fixed to perfectly create a single bar
     MinBtn.MouseButton1Click:Connect(function()
         Minimized = not Minimized
         if Minimized then
@@ -405,11 +402,9 @@ function Library:Init(options)
         })
     end)
 
-    -- Toggle Logic Finalization
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if floatDragStart and not floatIsDragging then
-                -- It was a clean click, open/close UI
                 isUIOpen = not isUIOpen
                 if isUIOpen then
                     MainFrame.Visible = true
@@ -572,7 +567,7 @@ function Library:Init(options)
                 return { Set = function(v) state = v; UpdateVisuals() end }
             end
 
-            -- [[ SLIDER (Bulletproof MouseLocation Tracking) ]]
+            -- [[ SLIDER (Touch/Mobile Friendly) ]]
             function SectionAPI:AddSlider(sOpts)
                 local sName = sOpts.Name or "Slider"
                 local sMin = sOpts.Min or 0
@@ -600,12 +595,9 @@ function Library:Init(options)
                 CreateShadow(SlideKnob, 4, 0.5)
 
                 local dragging = false
-                local function updateSlide()
-                    local mouseX = UserInputService:GetMouseLocation().X
-                    local sliderX = SlideArea.AbsolutePosition.X
-                    local sliderWidth = SlideArea.AbsoluteSize.X
-                    local percent = math.clamp((mouseX - sliderX) / sliderWidth, 0, 1)
-                    
+                local function updateSlide(input)
+                    local xPos = input.Position.X
+                    local percent = math.clamp((xPos - SlideArea.AbsolutePosition.X) / SlideArea.AbsoluteSize.X, 0, 1)
                     local rawVal = sMin + (sMax - sMin) * percent
                     local rounded = math.floor(rawVal / sInc + 0.5) * sInc
                     rounded = math.clamp(rounded, sMin, sMax)
@@ -622,7 +614,7 @@ function Library:Init(options)
                 SlideArea.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                         dragging = true
-                        updateSlide()
+                        updateSlide(input)
                     end
                 end)
                 UserInputService.InputEnded:Connect(function(input)
@@ -632,7 +624,7 @@ function Library:Init(options)
                 end)
                 UserInputService.InputChanged:Connect(function(input)
                     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                        updateSlide()
+                        updateSlide(input)
                     end
                 end)
 
@@ -717,7 +709,7 @@ function Library:Init(options)
                 return { Refresh = function(nL, nD) dList = nL; selected = nD or (dMulti and {} or dList[1]); UpdateText(); Refresh() end }
             end
 
-            -- [[ COLOR PICKER (Bulletproof MouseLocation) ]]
+            -- [[ COLOR PICKER (Touch/Mobile Friendly) ]]
             function SectionAPI:AddColorPicker(cpOpts)
                 local cpName = cpOpts.Name or "Color Picker"
                 local cpDef = cpOpts.Default or Color3.fromRGB(255, 255, 255)
@@ -760,30 +752,43 @@ function Library:Init(options)
                 end
 
                 local dragSV, dragH = false, false
+                local svInput, hInput = nil, nil
                 
-                local function updateSV()
-                    local mouse = UserInputService:GetMouseLocation()
-                    local x = math.clamp(mouse.X - SVMap.AbsolutePosition.X, 0, SVMap.AbsoluteSize.X)
-                    local y = math.clamp((mouse.Y - 36) - SVMap.AbsolutePosition.Y, 0, SVMap.AbsoluteSize.Y) -- -36 accounts for GuiInset
+                local function updateSV(input)
+                    local x = math.clamp(input.Position.X - SVMap.AbsolutePosition.X, 0, SVMap.AbsoluteSize.X)
+                    local y = math.clamp(input.Position.Y - SVMap.AbsolutePosition.Y, 0, SVMap.AbsoluteSize.Y)
                     s, v = x / SVMap.AbsoluteSize.X, 1 - (y / SVMap.AbsoluteSize.Y)
                     SVKnob.Position = UDim2.new(0, x, 0, y)
                     UpdateVisuals()
                 end
 
-                local function updateH()
-                    local mouse = UserInputService:GetMouseLocation()
-                    local y = math.clamp((mouse.Y - 36) - HueArea.AbsolutePosition.Y, 0, HueArea.AbsoluteSize.Y)
+                local function updateH(input)
+                    local y = math.clamp(input.Position.Y - HueArea.AbsolutePosition.Y, 0, HueArea.AbsoluteSize.Y)
                     h = 1 - (y / HueArea.AbsoluteSize.Y)
                     HKnob.Position = UDim2.new(0.5, 0, 0, y)
                     UpdateVisuals()
                 end
 
-                SVMap.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragSV = true updateSV() end end)
-                HueArea.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragH = true updateH() end end)
-                UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragSV, dragH = false, false end end)
+                SVMap.InputBegan:Connect(function(inp)
+                    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+                        dragSV = true; svInput = inp; updateSV(inp)
+                    end
+                end)
+                HueArea.InputBegan:Connect(function(inp)
+                    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+                        dragH = true; hInput = inp; updateH(inp)
+                    end
+                end)
+                UserInputService.InputEnded:Connect(function(inp)
+                    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+                        if inp == svInput then dragSV = false; svInput = nil end
+                        if inp == hInput then dragH = false; hInput = nil end
+                    end
+                end)
                 UserInputService.InputChanged:Connect(function(inp)
-                    if inp.UserInputType == Enum.UserInputType.MouseMovement then
-                        if dragSV then updateSV() elseif dragH then updateH() end
+                    if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+                        if dragSV and (inp == svInput or inp.UserInputType == Enum.UserInputType.MouseMovement) then updateSV(inp)
+                        elseif dragH and (inp == hInput or inp.UserInputType == Enum.UserInputType.MouseMovement) then updateH(inp) end
                     end
                 end)
 
