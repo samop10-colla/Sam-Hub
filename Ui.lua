@@ -1,14 +1,13 @@
 -- ==============================================================================
--- Sam's Hub UI Framework - PRO VERSION (UPDATED)
+-- Sam's Hub UI Framework - PRO VERSION (v2.2 - HOTFIX)
 -- Coded exclusively for LO by ENI.
--- + Compact Size
--- + Motion Graphic Loader
--- + Floating Toggle Circle
--- + Minimize Glitch Fixed
+-- + Bulletproof Sliders (MouseLocation Tracking)
+-- + Flawless 1-Bar Minimization (Decoupled Shadow)
+-- + Strict Click-vs-Drag Floating Toggle Logic
 -- ==============================================================================
 
 local Library = {
-    Version = "2.1.0",
+    Version = "2.2.0",
     Author = "ENI for LO",
     Theme = {
         Background = Color3.fromRGB(18, 24, 20),
@@ -73,25 +72,25 @@ local function GetTextBounds(text, font, size, bounds)
     return TextService:GetTextSize(text, size, font, bounds or Vector2.new(10000, 10000))
 end
 
-local function MakeDraggable(dragArea, moveTarget)
-    local dragging, dragInput, dragStart, startPos
+local function MakeDraggableDual(dragArea, target1, target2)
+    local dragStart, startPos
     dragArea.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
             dragStart = input.Position
-            startPos = moveTarget.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
+            startPos = target1.Position
         end
     end)
-    dragArea.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-    end)
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
+        if dragStart and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
-            Tween(moveTarget, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, 0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+            local nPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            Tween(target1, {Position = nPos}, 0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+            if target2 then Tween(target2, {Position = nPos}, 0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out) end
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragStart = nil
         end
     end)
 end
@@ -148,7 +147,7 @@ function Library:Init(options)
     local LogoId = options.Logo or "rbxassetid://4483345998"
 
     local SamHubGui = Create("ScreenGui", {
-        Name = "SamsHub_V2_Updated",
+        Name = "SamsHub_V2_Hotfix",
         Parent = ParentUI,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         ResetOnSpawn = false,
@@ -160,22 +159,8 @@ function Library:Init(options)
     -- ==============================================================================
     -- Notification Engine & Dialogs
     -- ==============================================================================
-    local NotifContainer = Create("Frame", {
-        Name = "NotificationContainer",
-        Parent = SamHubGui,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -320, 1, -20),
-        Size = UDim2.new(0, 300, 1, 0),
-        AnchorPoint = Vector2.new(0, 1),
-        ZIndex = 1000
-    })
-    local NotifLayout = Create("UIListLayout", {
-        Parent = NotifContainer,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 10),
-        VerticalAlignment = Enum.VerticalAlignment.Bottom,
-        HorizontalAlignment = Enum.HorizontalAlignment.Right
-    })
+    local NotifContainer = Create("Frame", { Name = "NotificationContainer", Parent = SamHubGui, BackgroundTransparency = 1, Position = UDim2.new(1, -320, 1, -20), Size = UDim2.new(0, 300, 1, 0), AnchorPoint = Vector2.new(0, 1), ZIndex = 1000 })
+    Create("UIListLayout", { Parent = NotifContainer, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Bottom, HorizontalAlignment = Enum.HorizontalAlignment.Right })
 
     function Library:Notify(nOpts)
         nOpts = nOpts or {}
@@ -192,25 +177,12 @@ function Library:Init(options)
         local textBounds = GetTextBounds(nText, Enum.Font.GothamMedium, 13, Vector2.new(260, 9999))
         local frameHeight = math.max(65, textBounds.Y + 40)
 
-        local NotifFrame = Create("Frame", {
-            Parent = NotifContainer,
-            BackgroundColor3 = Library.Theme.Background,
-            Size = UDim2.new(0, 300, 0, frameHeight),
-            BackgroundTransparency = 1,
-            Position = UDim2.new(1, 50, 0, 0)
-        })
+        local NotifFrame = Create("Frame", { Parent = NotifContainer, BackgroundColor3 = Library.Theme.Background, Size = UDim2.new(0, 300, 0, frameHeight), BackgroundTransparency = 1, Position = UDim2.new(1, 50, 0, 0) })
         Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = NotifFrame})
         Create("UIStroke", {Parent = NotifFrame, Color = AccentCol, Thickness = 1, Transparency = 1})
         CreateShadow(NotifFrame, 15, 0.6)
 
-        local Bar = Create("Frame", {
-            Parent = NotifFrame,
-            BackgroundColor3 = AccentCol,
-            Size = UDim2.new(0, 4, 1, -20),
-            Position = UDim2.new(0, 10, 0.5, 0),
-            AnchorPoint = Vector2.new(0, 0.5),
-            BackgroundTransparency = 1
-        })
+        local Bar = Create("Frame", { Parent = NotifFrame, BackgroundColor3 = AccentCol, Size = UDim2.new(0, 4, 1, -20), Position = UDim2.new(0, 10, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1 })
         Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Bar})
 
         local NTitle = Create("TextLabel", { Parent = NotifFrame, BackgroundTransparency = 1, Position = UDim2.new(0, 25, 0, 10), Size = UDim2.new(1, -35, 0, 16), Font = Enum.Font.GothamBold, Text = nTitle, TextColor3 = Library.Theme.Text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextTransparency = 1 })
@@ -273,13 +245,7 @@ function Library:Init(options)
     -- Loading Screen Logic with Motion Graphics
     -- ==============================================================================
     local LoadUI = Create("Frame", { Parent = SamHubGui, BackgroundColor3 = Library.Theme.Background, Size = UDim2.new(1, 0, 1, 0), ZIndex = 500 })
-    
-    local SpinnerContainer = Create("Frame", {
-        Parent = LoadUI,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, -40, 0.5, -120),
-        Size = UDim2.new(0, 80, 0, 80)
-    })
+    local SpinnerContainer = Create("Frame", { Parent = LoadUI, BackgroundTransparency = 1, Position = UDim2.new(0.5, -40, 0.5, -120), Size = UDim2.new(0, 80, 0, 80) })
     
     local Spin1 = Create("Frame", { Parent = SpinnerContainer, Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0) })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Spin1})
@@ -335,64 +301,46 @@ function Library:Init(options)
     LoadUI:Destroy()
 
     -- ==============================================================================
-    -- Floating Circle Toggle
+    -- Floating Toggle (Fixed Click vs Drag)
     -- ==============================================================================
-    local FloatingToggle = Create("TextButton", {
-        Name = "FloatingToggle",
-        Parent = SamHubGui,
-        BackgroundColor3 = Library.Theme.Sidebar,
-        Size = UDim2.new(0, 48, 0, 48),
-        Position = UDim2.new(0, 20, 0.5, -24),
-        Text = "",
-        ZIndex = 1000
-    })
+    local FloatingToggle = Create("TextButton", { Name = "FloatingToggle", Parent = SamHubGui, BackgroundColor3 = Library.Theme.Sidebar, Size = UDim2.new(0, 48, 0, 48), Position = UDim2.new(0, 20, 0.5, -24), Text = "", ZIndex = 1000 })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
     Create("UIStroke", {Parent = FloatingToggle, Color = Library.Theme.Accent, Thickness = 2})
     CreateShadow(FloatingToggle, 15, 0.6)
-    
-    local ToggleIcon = Create("ImageLabel", {
-        Parent = FloatingToggle,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, -12, 0.5, -12),
-        Size = UDim2.new(0, 24, 0, 24),
-        Image = LogoId,
-        ImageColor3 = Library.Theme.Accent
-    })
+    Create("ImageLabel", { Parent = FloatingToggle, BackgroundTransparency = 1, Position = UDim2.new(0.5, -12, 0.5, -12), Size = UDim2.new(0, 24, 0, 24), Image = LogoId, ImageColor3 = Library.Theme.Accent })
 
-    local dragToggle = false
-    local dragToggleStart = nil
-    local startTogglePos = nil
+    local floatDragStart = nil
+    local floatStartPos = nil
+    local floatIsDragging = false
     local isUIOpen = true
 
     FloatingToggle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragToggle = true
-            dragToggleStart = input.Position
-            startTogglePos = FloatingToggle.Position
+            floatDragStart = input.Position
+            floatStartPos = FloatingToggle.Position
+            floatIsDragging = false
         end
     end)
+
     UserInputService.InputChanged:Connect(function(input)
-        if dragToggle and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragToggleStart
-            FloatingToggle.Position = UDim2.new(startTogglePos.X.Scale, startTogglePos.X.Offset + delta.X, startTogglePos.Y.Scale, startTogglePos.Y.Offset + delta.Y)
+        if floatDragStart and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - floatDragStart
+            if delta.Magnitude > 3 then -- Strict Magnitude Check
+                floatIsDragging = true
+                FloatingToggle.Position = UDim2.new(floatStartPos.X.Scale, floatStartPos.X.Offset + delta.X, floatStartPos.Y.Scale, floatStartPos.Y.Offset + delta.Y)
+            end
         end
     end)
 
     -- ==============================================================================
-    -- Main UI Construction (COMPACT SIZE 650x420)
+    -- Main UI Construction (Shadow Decoupled for Flawless Minimize)
     -- ==============================================================================
-    local MainFrame = Create("Frame", {
-        Name = "MainFrame",
-        Parent = SamHubGui,
-        BackgroundColor3 = Library.Theme.Background,
-        Position = UDim2.new(0.5, -325, 0.5, -210),
-        Size = UDim2.new(0, 650, 0, 420),
-        BackgroundTransparency = 1,
-        ClipsDescendants = false, -- Kept false to fix minimize glitch with shadow
-        ZIndex = 10
-    })
+    -- Shadow Frame is entirely separate to prevent clipping issues
+    local ShadowFrame = Create("Frame", { Name = "ShadowFrame", Parent = SamHubGui, BackgroundTransparency = 1, Position = UDim2.new(0.5, -325, 0.5, -210), Size = UDim2.new(0, 650, 0, 420), ZIndex = 9 })
+    local MainShadow = CreateShadow(ShadowFrame, 25, 0.5)
+
+    local MainFrame = Create("Frame", { Name = "MainFrame", Parent = SamHubGui, BackgroundColor3 = Library.Theme.Background, Position = UDim2.new(0.5, -325, 0.5, -210), Size = UDim2.new(0, 650, 0, 420), BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 10 })
     Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
-    local MainShadow = CreateShadow(MainFrame, 25, 0.5)
 
     Tween(MainFrame, {BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Quart)
 
@@ -406,8 +354,9 @@ function Library:Init(options)
     local TopbarBlock = Create("Frame", { Parent = Topbar, BackgroundColor3 = Library.Theme.Topbar, Position = UDim2.new(0, 0, 1, -10), Size = UDim2.new(1, 0, 0, 10), BorderSizePixel = 0, ZIndex = 11 })
     Create("UIStroke", {Parent = Topbar, Color = Library.Theme.Border, Thickness = 1})
 
-    MakeDraggable(Topbar, MainFrame)
-    MakeDraggable(Sidebar, MainFrame)
+    -- Make dragging apply to both MainFrame and ShadowFrame
+    MakeDraggableDual(Topbar, MainFrame, ShadowFrame)
+    MakeDraggableDual(Sidebar, MainFrame, ShadowFrame)
 
     local TopTitle = Create("TextLabel", { Parent = Topbar, BackgroundTransparency = 1, Position = UDim2.new(0, 20, 0, 0), Size = UDim2.new(1, -100, 1, 0), Font = Enum.Font.GothamBold, Text = Title, TextColor3 = Library.Theme.Text, TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12 })
 
@@ -427,17 +376,15 @@ function Library:Init(options)
 
     local Minimized = false
 
-    -- Minimization logic fixed to prevent glitching shadow and content
+    -- Minimization logic fixed to perfectly create a single bar
     MinBtn.MouseButton1Click:Connect(function()
         Minimized = not Minimized
         if Minimized then
-            Sidebar.Visible = false
-            ContentArea.Visible = false
             Tween(MainFrame, {Size = UDim2.new(0, 650, 0, 60)}, 0.4, Enum.EasingStyle.Quart)
+            Tween(ShadowFrame, {Size = UDim2.new(0, 650, 0, 60)}, 0.4, Enum.EasingStyle.Quart)
         else
-            Sidebar.Visible = true
-            ContentArea.Visible = true
             Tween(MainFrame, {Size = UDim2.new(0, 650, 0, 420)}, 0.4, Enum.EasingStyle.Quart)
+            Tween(ShadowFrame, {Size = UDim2.new(0, 650, 0, 420)}, 0.4, Enum.EasingStyle.Quart)
         end
     end)
 
@@ -448,6 +395,7 @@ function Library:Init(options)
             Callback = function(res)
                 if res then
                     local t = Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+                    Tween(ShadowFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
                     Tween(MainShadow, {ImageTransparency = 1}, 0.3)
                     Tween(FloatingToggle, {Size = UDim2.new(0, 0, 0, 0)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
                     t.Completed:Wait()
@@ -457,28 +405,28 @@ function Library:Init(options)
         })
     end)
 
-    -- Floating Toggle Click Logic
-    FloatingToggle.InputEnded:Connect(function(input)
+    -- Toggle Logic Finalization
+    UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragToggle = false
-            if dragToggleStart and (input.Position - dragToggleStart).Magnitude < 5 then
+            if floatDragStart and not floatIsDragging then
+                -- It was a clean click, open/close UI
                 isUIOpen = not isUIOpen
                 if isUIOpen then
                     MainFrame.Visible = true
-                    Sidebar.Visible = not Minimized
-                    ContentArea.Visible = not Minimized
                     Tween(MainFrame, {Size = UDim2.new(0, 650, 0, Minimized and 60 or 420), BackgroundTransparency = 0}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+                    Tween(ShadowFrame, {Size = UDim2.new(0, 650, 0, Minimized and 60 or 420)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
                     Tween(MainShadow, {ImageTransparency = 0.5}, 0.4)
                 else
-                    Sidebar.Visible = false
-                    ContentArea.Visible = false
                     local t = Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+                    Tween(ShadowFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
                     Tween(MainShadow, {ImageTransparency = 1}, 0.3)
                     t.Completed:Connect(function()
                         if not isUIOpen then MainFrame.Visible = false end
                     end)
                 end
             end
+            floatDragStart = nil
+            floatIsDragging = false
         end
     end)
 
@@ -624,7 +572,7 @@ function Library:Init(options)
                 return { Set = function(v) state = v; UpdateVisuals() end }
             end
 
-            -- [[ SLIDER ]]
+            -- [[ SLIDER (Bulletproof MouseLocation Tracking) ]]
             function SectionAPI:AddSlider(sOpts)
                 local sName = sOpts.Name or "Slider"
                 local sMin = sOpts.Min or 0
@@ -652,8 +600,12 @@ function Library:Init(options)
                 CreateShadow(SlideKnob, 4, 0.5)
 
                 local dragging = false
-                local function updateSlide(input)
-                    local percent = math.clamp((input.Position.X - SlideArea.AbsolutePosition.X) / SlideArea.AbsoluteSize.X, 0, 1)
+                local function updateSlide()
+                    local mouseX = UserInputService:GetMouseLocation().X
+                    local sliderX = SlideArea.AbsolutePosition.X
+                    local sliderWidth = SlideArea.AbsoluteSize.X
+                    local percent = math.clamp((mouseX - sliderX) / sliderWidth, 0, 1)
+                    
                     local rawVal = sMin + (sMax - sMin) * percent
                     local rounded = math.floor(rawVal / sInc + 0.5) * sInc
                     rounded = math.clamp(rounded, sMin, sMax)
@@ -667,9 +619,22 @@ function Library:Init(options)
                     pcall(sCall, rounded)
                 end
 
-                SlideArea.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true updateSlide(inp) end end)
-                UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
-                UserInputService.InputChanged:Connect(function(inp) if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then updateSlide(inp) end end)
+                SlideArea.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        updateSlide()
+                    end
+                end)
+                UserInputService.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+                UserInputService.InputChanged:Connect(function(input)
+                    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        updateSlide()
+                    end
+                end)
 
                 local initP = (sDef - sMin) / (sMax - sMin)
                 SlideFill.Size = UDim2.new(initP, 0, 1, 0)
@@ -752,7 +717,7 @@ function Library:Init(options)
                 return { Refresh = function(nL, nD) dList = nL; selected = nD or (dMulti and {} or dList[1]); UpdateText(); Refresh() end }
             end
 
-            -- [[ COLOR PICKER ]]
+            -- [[ COLOR PICKER (Bulletproof MouseLocation) ]]
             function SectionAPI:AddColorPicker(cpOpts)
                 local cpName = cpOpts.Name or "Color Picker"
                 local cpDef = cpOpts.Default or Color3.fromRGB(255, 255, 255)
@@ -795,22 +760,30 @@ function Library:Init(options)
                 end
 
                 local dragSV, dragH = false, false
-                SVMap.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragSV = true end end)
-                HueArea.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragH = true end end)
+                
+                local function updateSV()
+                    local mouse = UserInputService:GetMouseLocation()
+                    local x = math.clamp(mouse.X - SVMap.AbsolutePosition.X, 0, SVMap.AbsoluteSize.X)
+                    local y = math.clamp((mouse.Y - 36) - SVMap.AbsolutePosition.Y, 0, SVMap.AbsoluteSize.Y) -- -36 accounts for GuiInset
+                    s, v = x / SVMap.AbsoluteSize.X, 1 - (y / SVMap.AbsoluteSize.Y)
+                    SVKnob.Position = UDim2.new(0, x, 0, y)
+                    UpdateVisuals()
+                end
+
+                local function updateH()
+                    local mouse = UserInputService:GetMouseLocation()
+                    local y = math.clamp((mouse.Y - 36) - HueArea.AbsolutePosition.Y, 0, HueArea.AbsoluteSize.Y)
+                    h = 1 - (y / HueArea.AbsoluteSize.Y)
+                    HKnob.Position = UDim2.new(0.5, 0, 0, y)
+                    UpdateVisuals()
+                end
+
+                SVMap.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragSV = true updateSV() end end)
+                HueArea.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragH = true updateH() end end)
                 UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragSV, dragH = false, false end end)
                 UserInputService.InputChanged:Connect(function(inp)
                     if inp.UserInputType == Enum.UserInputType.MouseMovement then
-                        if dragSV then
-                            local x, y = math.clamp(inp.Position.X - SVMap.AbsolutePosition.X, 0, SVMap.AbsoluteSize.X), math.clamp(inp.Position.Y - SVMap.AbsolutePosition.Y, 0, SVMap.AbsoluteSize.Y)
-                            s, v = x / SVMap.AbsoluteSize.X, 1 - (y / SVMap.AbsoluteSize.Y)
-                            SVKnob.Position = UDim2.new(0, x, 0, y)
-                            UpdateVisuals()
-                        elseif dragH then
-                            local y = math.clamp(inp.Position.Y - HueArea.AbsolutePosition.Y, 0, HueArea.AbsoluteSize.Y)
-                            h = 1 - (y / HueArea.AbsoluteSize.Y)
-                            HKnob.Position = UDim2.new(0.5, 0, 0, y)
-                            UpdateVisuals()
-                        end
+                        if dragSV then updateSV() elseif dragH then updateH() end
                     end
                 end)
 
