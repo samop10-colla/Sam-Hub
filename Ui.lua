@@ -7,6 +7,7 @@
        |____/ \__,_|_| |_| |_(_)    |_____(_)  |_| |_|\__,_|_.__/ 
                                                                   
       "Sam's Hub" Professional UI Framework — Light Emerald & Mint Royal Edition
+                               [INSTANT-LAUNCH VERSION]
 ========================================================================================
 --]]
 
@@ -205,143 +206,7 @@ function UI:CreateShadow(parent)
 end
 
 -- ========================================================================================
--- PART 1: THE ROYAL LOADING SCREEN SYSTEM
--- ========================================================================================
-function Library:CreateLoadingScreen(customTitle)
-    local titleText = customTitle or "SAM'S HUB"
-    
-    local LoadScreenGui = Instance.new("ScreenGui")
-    LoadScreenGui.Name = "SamsHub_Loader"
-    LoadScreenGui.ResetOnSpawn = false
-    LoadScreenGui.IgnoreGuiInset = true
-    LoadScreenGui.DisplayOrder = 9999
-    LoadScreenGui.Parent = TargetGuiContainer
-    
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(1, 0, 1, 0)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(8, 12, 10)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Parent = LoadScreenGui
-    
-    -- Radial background vignette
-    local BackgroundOverlay = Instance.new("ImageLabel")
-    BackgroundOverlay.Size = UDim2.new(1, 0, 1, 0)
-    BackgroundOverlay.BackgroundTransparency = 1
-    BackgroundOverlay.Image = "rbxassetid://13110901594"
-    BackgroundOverlay.ImageColor3 = Color3.fromRGB(15, 30, 22)
-    BackgroundOverlay.ImageTransparency = 0.2
-    BackgroundOverlay.Parent = MainFrame
-
-    local CenterPanel = Instance.new("Frame")
-    CenterPanel.Size = UDim2.new(0, 380, 0, 240)
-    CenterPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
-    CenterPanel.AnchorPoint = Vector2.new(0.5, 0.5)
-    CenterPanel.BackgroundTransparency = 1
-    CenterPanel.Parent = MainFrame
-    
-    -- Decorative Royal Ring (Rotation Graphic)
-    local GlowingRing = Instance.new("ImageLabel")
-    GlowingRing.Size = UDim2.new(0, 120, 0, 120)
-    GlowingRing.Position = UDim2.new(0.5, 0, 0.4, -20)
-    GlowingRing.AnchorPoint = Vector2.new(0.5, 0.5)
-    GlowingRing.BackgroundTransparency = 1
-    GlowingRing.Image = "rbxassetid://13109265215"
-    GlowingRing.ImageColor3 = Library.Theme.AccentColor
-    GlowingRing.ImageTransparency = 0.3
-    GlowingRing.Parent = CenterPanel
-    
-    -- Smooth rotating loop
-    local rotationThread = RunService.RenderStepped:Connect(function(delta)
-        GlowingRing.Rotation = (GlowingRing.Rotation + (60 * delta)) % 360
-    end)
-    
-    -- Text Label (Logo)
-    local LogoLabel = Instance.new("TextLabel")
-    LogoLabel.Size = UDim2.new(1, 0, 0, 40)
-    LogoLabel.Position = UDim2.new(0, 0, 0.5, 35)
-    LogoLabel.BackgroundTransparency = 1
-    LogoLabel.Font = Enum.Font.FredokaOne
-    LogoLabel.Text = titleText
-    LogoLabel.TextColor3 = Library.Theme.TextPrimary
-    LogoLabel.TextSize = 32
-    LogoLabel.TextStrokeTransparency = 0.8
-    LogoLabel.TextStrokeColor3 = Library.Theme.AccentColor
-    LogoLabel.Parent = CenterPanel
-    
-    -- Subtitle status label
-    local StatusLabel = Instance.new("TextLabel")
-    StatusLabel.Size = UDim2.new(1, 0, 0, 20)
-    StatusLabel.Position = UDim2.new(0, 0, 0.5, 75)
-    StatusLabel.BackgroundTransparency = 1
-    StatusLabel.Font = Enum.Font.GothamMedium
-    StatusLabel.Text = "Initializing secure runtime..."
-    StatusLabel.TextColor3 = Library.Theme.TextSecondary
-    StatusLabel.TextSize = 13
-    StatusLabel.Parent = CenterPanel
-    
-    -- Progress Bar Track
-    local TrackFrame = Instance.new("Frame")
-    TrackFrame.Size = UDim2.new(0, 280, 0, 6)
-    TrackFrame.Position = UDim2.new(0.5, 0, 0.5, 105)
-    TrackFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    TrackFrame.BackgroundColor3 = Color3.fromRGB(18, 25, 22)
-    TrackFrame.BorderSizePixel = 0
-    TrackFrame.Parent = CenterPanel
-    UI:CreateCorner(TrackFrame, UDim.new(1, 0))
-    UI:CreateStroke(TrackFrame, Color3.fromRGB(30, 42, 36), 1)
-    
-    local ProgressBar = Instance.new("Frame")
-    ProgressBar.Size = UDim2.new(0, 0, 1, 0)
-    ProgressBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ProgressBar.BorderSizePixel = 0
-    ProgressBar.Parent = TrackFrame
-    UI:CreateCorner(ProgressBar, UDim.new(1, 0))
-    
-    local BarGradient = UI:CreateGradient(ProgressBar, {
-        ColorSequenceKeypoint.new(0, Library.Theme.AccentColor),
-        ColorSequenceKeypoint.new(1, Library.Theme.AccentLight)
-    }, 0)
-    
-    -- Sequential Cinematic Loader Stages
-    local loaderStages = {
-        {progress = 0.15, status = "Loading framework core components..."},
-        {progress = 0.40, status = "Configuring rendering matrices & styles..."},
-        {progress = 0.65, status = "Verifying integrity authorization..."},
-        {progress = 0.85, status = "Applying light emerald asset schemes..."},
-        {progress = 1.00, status = "Execution ready. Welcome to Sam's Hub!"}
-    }
-    
-    task.wait(0.6)
-    for _, stage in ipairs(loaderStages) do
-        StatusLabel.Text = stage.status
-        Tween(ProgressBar, TweenInfo.new(0.7, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(stage.progress, 0, 1, 0)})
-        task.wait(0.8)
-    end
-    
-    rotationThread:Disconnect()
-    
-    -- Smooth Fade out
-    local fadeWait1 = Tween(MainFrame, TweenInfo.new(0.6, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
-    local fadeWait2 = Tween(BackgroundOverlay, TweenInfo.new(0.6, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {ImageTransparency = 1})
-    Tween(GlowingRing, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {ImageTransparency = 1})
-    Tween(LogoLabel, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextTransparency = 1, TextStrokeTransparency = 1})
-    Tween(StatusLabel, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextTransparency = 1})
-    Tween(TrackFrame, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
-    Tween(ProgressBar, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
-    
-    -- Wait until fading is visually completed before calling destroy
-    if fadeWait1 and fadeWait1.Completed then
-        fadeWait1.Completed:Wait()
-    else
-        task.wait(0.65)
-    end
-    
-    LoadScreenGui:Destroy()
-end
-
-
--- ========================================================================================
--- PART 2: WINDOW BUILDER & CORE INTERFACES
+-- PART 2: WINDOW BUILDER & CORE INTERFACES (INSTANT LAUNCH)
 -- ========================================================================================
 function Library:CreateWindow(config)
     config = config or {}
@@ -1181,7 +1046,7 @@ function Library:CreateWindow(config)
             SearchBar.TextColor3 = Library.Theme.TextPrimary
             SearchBar.TextSize = 11
             SearchBar.TextXAlignment = Enum.TextXAlignment.Left
-            SearchBar.Parent = SearchBarFrame
+            SearchBar.Parent = SearchBar
             
             local ListScroll = Instance.new("ScrollingFrame")
             ListScroll.Size = UDim2.new(1, 0, 1, -32)
