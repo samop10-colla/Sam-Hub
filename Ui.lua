@@ -18,15 +18,35 @@ local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+while not LocalPlayer do
+    task.wait(0.1)
+    LocalPlayer = Players.LocalPlayer
+end
 
--- Fallback safely to PlayerGui if CoreGui is restricted (e.g., standard executor environments vs studio testing)
-local TargetGuiContainer = PlayerGui
-pcall(function()
-    if CoreGui and CoreGui:FindFirstChild("RobloxGui") then
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 15) or LocalPlayer:FindFirstChildOfClass("PlayerGui")
+
+-- Safe GUI container resolution to avoid writing blocks or permission errors in execution environments
+local TargetGuiContainer = nil
+if gethui then
+    TargetGuiContainer = gethui()
+elseif CoreGui then
+    local success, _ = pcall(function()
+        local test = Instance.new("ScreenGui")
+        test.Parent = CoreGui
+        test:Destroy()
+    end)
+    if success then
         TargetGuiContainer = CoreGui
+    else
+        TargetGuiContainer = PlayerGui
     end
-end)
+else
+    TargetGuiContainer = PlayerGui
+end
+
+if not TargetGuiContainer then
+    TargetGuiContainer = PlayerGui
+end
 
 -- Custom Signal / Event Class to manage UI interactions cleanly
 local Signal = {}
@@ -59,45 +79,6 @@ function Signal:Destroy()
     table.clear(self)
 end
 
--- Smooth Dragging Utility
-local Dragging = {}
-function Dragging.Register(frame, handle)
-    local dragStart = nil
-    local startPos = nil
-    local dragging = false
-    
-    local function update(input)
-        local delta = input.Position - dragStart
-        local targetPos = UDim2.new(
-            startPos.X.Scale, 
-            startPos.X.Offset + delta.X, 
-            startPos.Y.Scale, 
-            startPos.Y.Offset + delta.Y
-        )
-        TweenService:Create(frame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Position = targetPos}):Play()
-    end
-    
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            update(input)
-        end
-    end)
-end
-
 -- Global Library Configuration and Styling Parameters
 local Library = {
     Theme = {
@@ -119,12 +100,64 @@ local Library = {
     ActiveWindow = nil
 }
 
--- Utility: Safe Tweens
+-- Safe Tween function wrapping to prevent failures from halting UI threads
 local function Tween(instance, info, propertyTable)
     if not instance then return nil end
-    local tween = TweenService:Create(instance, info, propertyTable)
-    tween:Play()
-    return tween
+    local tween
+    local success, _ = pcall(function()
+        tween = TweenService:Create(instance, info, propertyTable)
+        tween:Play()
+    end)
+    if success and tween then
+        return tween
+    else
+        -- Fallback: Apply properties instantly if TweenService is failing or restricted
+        for prop, val in pairs(propertyTable) do
+            pcall(function()
+                instance[prop] = val
+            end)
+        end
+    end
+    return nil
+end
+
+-- Smooth Dragging Utility
+local Dragging = {}
+function Dragging.Register(frame, handle)
+    local dragStart = nil
+    local startPos = nil
+    local dragging = false
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        local targetPos = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+        Tween(frame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Position = targetPos})
+    end
+    
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input)
+        end
+    end)
 end
 
 -- Procedural Utility: Modern Rounded UI Element Builders
@@ -281,22 +314,28 @@ function Library:CreateLoadingScreen(customTitle)
     task.wait(0.6)
     for _, stage in ipairs(loaderStages) do
         StatusLabel.Text = stage.status
-        Tween(ProgressBar, TweenInfo.new(0.7, Enum.EasingStyle.OutQuad), {Size = UDim2.new(stage.progress, 0, 1, 0)})
+        Tween(ProgressBar, TweenInfo.new(0.7, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(stage.progress, 0, 1, 0)})
         task.wait(0.8)
     end
     
     rotationThread:Disconnect()
     
     -- Smooth Fade out
-    Tween(MainFrame, TweenInfo.new(0.6, Enum.EasingStyle.OutQuad), {BackgroundTransparency = 1})
-    Tween(BackgroundOverlay, TweenInfo.new(0.6, Enum.EasingStyle.OutQuad), {ImageTransparency = 1})
-    Tween(GlowingRing, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad), {ImageTransparency = 1})
-    Tween(LogoLabel, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad), {TextTransparency = 1, TextStrokeTransparency = 1})
-    Tween(StatusLabel, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad), {TextTransparency = 1})
-    Tween(TrackFrame, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad), {BackgroundTransparency = 1})
-    Tween(ProgressBar, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad), {BackgroundTransparency = 1})
+    local fadeWait1 = Tween(MainFrame, TweenInfo.new(0.6, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
+    local fadeWait2 = Tween(BackgroundOverlay, TweenInfo.new(0.6, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {ImageTransparency = 1})
+    Tween(GlowingRing, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {ImageTransparency = 1})
+    Tween(LogoLabel, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextTransparency = 1, TextStrokeTransparency = 1})
+    Tween(StatusLabel, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextTransparency = 1})
+    Tween(TrackFrame, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
+    Tween(ProgressBar, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
     
-    task.wait(0.65)
+    -- Wait until fading is visually completed before calling destroy
+    if fadeWait1 and fadeWait1.Completed then
+        fadeWait1.Completed:Wait()
+    else
+        task.wait(0.65)
+    end
+    
     LoadScreenGui:Destroy()
 end
 
@@ -310,7 +349,7 @@ function Library:CreateWindow(config)
     
     -- Protect against double windows
     if Library.ActiveWindow then
-        Library.ActiveWindow:Destroy()
+        pcall(function() Library.ActiveWindow:Destroy() end)
     end
     
     local ScreenGui = Instance.new("ScreenGui")
@@ -406,13 +445,13 @@ function Library:CreateWindow(config)
     CloseButton.TextSize = 18
     CloseButton.Parent = WindowControls
     UI:CreateCorner(CloseButton, UDim.new(0, 6))
-    UI:CreateStroke(CloseButton, Color3.fromRGB(60, 25, 25), 1)
+    local CloseStroke = UI:CreateStroke(CloseButton, Color3.fromRGB(60, 25, 25), 1)
     
     CloseButton.MouseEnter:Connect(function()
-        Tween(CloseButton, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Color3.fromRGB(180, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)})
+        Tween(CloseButton, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(180, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)})
     end)
     CloseButton.MouseLeave:Connect(function()
-        Tween(CloseButton, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Color3.fromRGB(30, 15, 15), TextColor3 = Color3.fromRGB(255, 110, 110)})
+        Tween(CloseButton, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(30, 15, 15), TextColor3 = Color3.fromRGB(255, 110, 110)})
     end)
     
     -- Elegant Minimize Button
@@ -427,13 +466,13 @@ function Library:CreateWindow(config)
     MinimizeButton.TextSize = 14
     MinimizeButton.Parent = WindowControls
     UI:CreateCorner(MinimizeButton, UDim.new(0, 6))
-    UI:CreateStroke(MinimizeButton, Library.Theme.BorderColor, 1)
+    local MinStroke = UI:CreateStroke(MinimizeButton, Library.Theme.BorderColor, 1)
 
     MinimizeButton.MouseEnter:Connect(function()
-        Tween(MinimizeButton, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.AccentColor, TextColor3 = Color3.fromRGB(255, 255, 255)})
+        Tween(MinimizeButton, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.AccentColor, TextColor3 = Color3.fromRGB(255, 255, 255)})
     end)
     MinimizeButton.MouseLeave:Connect(function()
-        Tween(MinimizeButton, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Color3.fromRGB(20, 28, 24), TextColor3 = Library.Theme.AccentLight})
+        Tween(MinimizeButton, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(20, 28, 24), TextColor3 = Library.Theme.AccentLight})
     end)
     
     -- Main Content Layout
@@ -598,27 +637,27 @@ function Library:CreateWindow(config)
                 local prevButton = WindowAPI.ActiveTab.Button
                 local prevPage = WindowAPI.ActiveTab.Page
                 
-                Tween(prevButton, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {BackgroundTransparency = 1})
-                Tween(prevButton:FindFirstChild("TabIndicator"), TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {BackgroundTransparency = 1})
-                Tween(prevButton:FindFirstChild("TextLabel"), TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextSecondary})
+                Tween(prevButton, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
+                Tween(prevButton:FindFirstChild("TabIndicator"), TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
+                Tween(prevButton:FindFirstChild("TextLabel"), TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextSecondary})
                 prevPage.Visible = false
             end
             
             WindowAPI.ActiveTab = {Button = TabButton, Page = Page}
-            Tween(TabButton, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {BackgroundTransparency = 0.9, BackgroundColor3 = Library.Theme.AccentColor})
-            Tween(TabIndicator, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {BackgroundTransparency = 0})
-            Tween(TabLabel, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.AccentLight})
+            Tween(TabButton, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.9, BackgroundColor3 = Library.Theme.AccentColor})
+            Tween(TabIndicator, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundTransparency = 0})
+            Tween(TabLabel, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.AccentLight})
             Page.Visible = true
         end
         
         TabButton.MouseEnter:Connect(function()
             if WindowAPI.ActiveTab and WindowAPI.ActiveTab.Button == TabButton then return end
-            Tween(TabLabel, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextPrimary})
+            Tween(TabLabel, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextPrimary})
         end)
         
         TabButton.MouseLeave:Connect(function()
             if WindowAPI.ActiveTab and WindowAPI.ActiveTab.Button == TabButton then return end
-            Tween(TabLabel, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextSecondary})
+            Tween(TabLabel, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextSecondary})
         end)
         
         TabButton.MouseButton1Click:Connect(Select)
@@ -684,19 +723,18 @@ function Library:CreateWindow(config)
             TextBtn.Parent = ButtonFrame
             
             TextBtn.MouseEnter:Connect(function()
-                Tween(ButtonFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementHover})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentColor})
+                Tween(ButtonFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementHover})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentColor})
             end)
             TextBtn.MouseLeave:Connect(function()
-                Tween(ButtonFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementBackground})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                Tween(ButtonFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementBackground})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
             end)
             
             TextBtn.MouseButton1Click:Connect(function()
-                -- Dynamic button click reaction scale
-                Tween(ButtonFrame, TweenInfo.new(0.08, Enum.EasingStyle.OutQuad), {Size = UDim2.new(0.98, 4, 0, 34)})
+                Tween(ButtonFrame, TweenInfo.new(0.08, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(0.98, 4, 0, 34)})
                 task.wait(0.08)
-                Tween(ButtonFrame, TweenInfo.new(0.08, Enum.EasingStyle.OutQuad), {Size = UDim2.new(1, 0, 0, 36)})
+                Tween(ButtonFrame, TweenInfo.new(0.08, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 36)})
                 pcall(callback)
             end)
         end
@@ -753,27 +791,27 @@ function Library:CreateWindow(config)
             
             local function UpdateVisuals()
                 if active then
-                    Tween(Switch, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.AccentColor})
-                    Tween(Ball, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {Position = UDim2.new(1, -17, 0.5, -7), BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
-                    Tween(Label, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextPrimary})
-                    Tween(SwitchStroke, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentLight})
+                    Tween(Switch, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.AccentColor})
+                    Tween(Ball, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Position = UDim2.new(1, -17, 0.5, -7), BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
+                    Tween(Label, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextPrimary})
+                    Tween(SwitchStroke, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentLight})
                 else
-                    Tween(Switch, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Color3.fromRGB(35, 45, 40)})
-                    Tween(Ball, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {Position = UDim2.new(0, 3, 0.5, -7), BackgroundColor3 = Color3.fromRGB(150, 160, 155)})
-                    Tween(Label, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextSecondary})
-                    Tween(SwitchStroke, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                    Tween(Switch, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(35, 45, 40)})
+                    Tween(Ball, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Position = UDim2.new(0, 3, 0.5, -7), BackgroundColor3 = Color3.fromRGB(150, 160, 155)})
+                    Tween(Label, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextSecondary})
+                    Tween(SwitchStroke, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
                 end
             end
             
             UpdateVisuals()
             
             Hitbox.MouseEnter:Connect(function()
-                Tween(ToggleFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementHover})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentColor})
+                Tween(ToggleFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementHover})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentColor})
             end)
             Hitbox.MouseLeave:Connect(function()
-                Tween(ToggleFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementBackground})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                Tween(ToggleFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementBackground})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
             end)
             
             Hitbox.MouseButton1Click:Connect(function()
@@ -845,27 +883,27 @@ function Library:CreateWindow(config)
             
             local function UpdateCheckbox()
                 if checked then
-                    Tween(Box, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.AccentColor})
-                    Tween(CheckIcon, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {ImageTransparency = 0})
-                    Tween(Label, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextPrimary})
-                    Tween(BoxStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentLight})
+                    Tween(Box, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.AccentColor})
+                    Tween(CheckIcon, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {ImageTransparency = 0})
+                    Tween(Label, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextPrimary})
+                    Tween(BoxStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentLight})
                 else
-                    Tween(Box, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Color3.fromRGB(35, 45, 40)})
-                    Tween(CheckIcon, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {ImageTransparency = 1})
-                    Tween(Label, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextSecondary})
-                    Tween(BoxStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                    Tween(Box, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(35, 45, 40)})
+                    Tween(CheckIcon, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {ImageTransparency = 1})
+                    Tween(Label, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextSecondary})
+                    Tween(BoxStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
                 end
             end
             
             UpdateCheckbox()
             
             Hitbox.MouseEnter:Connect(function()
-                Tween(CheckFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementHover})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentColor})
+                Tween(CheckFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementHover})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentColor})
             end)
             Hitbox.MouseLeave:Connect(function()
-                Tween(CheckFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementBackground})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                Tween(CheckFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementBackground})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
             end)
             
             Hitbox.MouseButton1Click:Connect(function()
@@ -943,7 +981,7 @@ function Library:CreateWindow(config)
                 SliderValue = math.clamp(val, min, max)
                 ValueLabel.Text = tostring(SliderValue)
                 local percentage = (SliderValue - min) / (max - min)
-                Tween(Fill, TweenInfo.new(0.08, Enum.EasingStyle.OutQuad), {Size = UDim2.new(percentage, 0, 1, 0)})
+                Tween(Fill, TweenInfo.new(0.08, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(percentage, 0, 1, 0)})
                 pcall(callback, SliderValue)
             end
             
@@ -958,8 +996,8 @@ function Library:CreateWindow(config)
             TriggerBtn.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = true
-                    Tween(TitleLabel, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextPrimary})
-                    Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentLight})
+                    Tween(TitleLabel, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextPrimary})
+                    Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentLight})
                     HandleInput(input)
                 end
             end)
@@ -967,8 +1005,8 @@ function Library:CreateWindow(config)
             UserInputService.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = false
-                    Tween(TitleLabel, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextSecondary})
-                    Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                    Tween(TitleLabel, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextSecondary})
+                    Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
                 end
             end)
             
@@ -1037,17 +1075,17 @@ function Library:CreateWindow(config)
             RealTextBox.Parent = InnerFrame
             
             RealTextBox.Focused:Connect(function()
-                Tween(InputFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementHover})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentColor})
-                Tween(InnerStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentLight})
-                Tween(TitleLabel, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextPrimary})
+                Tween(InputFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementHover})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentColor})
+                Tween(InnerStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentLight})
+                Tween(TitleLabel, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextPrimary})
             end)
             
             RealTextBox.FocusLost:Connect(function(enterPressed)
-                Tween(InputFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementBackground})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
-                Tween(InnerStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
-                Tween(TitleLabel, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextSecondary})
+                Tween(InputFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementBackground})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
+                Tween(InnerStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
+                Tween(TitleLabel, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextSecondary})
                 pcall(callback, RealTextBox.Text, enterPressed)
             end)
             
@@ -1167,7 +1205,7 @@ function Library:CreateWindow(config)
             
             local function RedrawItems()
                 for _, btn in ipairs(buttonsCache) do
-                    btn:Destroy()
+                    pcall(function() btn:Destroy() end)
                 end
                 table.clear(buttonsCache)
                 
@@ -1185,20 +1223,20 @@ function Library:CreateWindow(config)
                     local ItemStroke = UI:CreateStroke(ItemBtn, Library.Theme.BorderColor, 1)
                     
                     ItemBtn.MouseEnter:Connect(function()
-                        Tween(ItemBtn, TweenInfo.new(0.1, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.AccentColor, TextColor3 = Color3.fromRGB(255, 255, 255)})
-                        Tween(ItemStroke, TweenInfo.new(0.1, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentLight})
+                        Tween(ItemBtn, TweenInfo.new(0.1, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.AccentColor, TextColor3 = Color3.fromRGB(255, 255, 255)})
+                        Tween(ItemStroke, TweenInfo.new(0.1, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentLight})
                     end)
                     ItemBtn.MouseLeave:Connect(function()
-                        Tween(ItemBtn, TweenInfo.new(0.1, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Color3.fromRGB(24, 38, 32), TextColor3 = Library.Theme.TextSecondary})
-                        Tween(ItemStroke, TweenInfo.new(0.1, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                        Tween(ItemBtn, TweenInfo.new(0.1, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(24, 38, 32), TextColor3 = Library.Theme.TextSecondary})
+                        Tween(ItemStroke, TweenInfo.new(0.1, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
                     end)
                     
                     ItemBtn.MouseButton1Click:Connect(function()
                         selectedVal = val
                         SelectedIndicator.Text = tostring(val)
                         isOpen = false
-                        Tween(DropdownContainer, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {Size = UDim2.new(1, 0, 0, 36)})
-                        Tween(IndicatorIcon, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {Rotation = 0})
+                        Tween(DropdownContainer, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 36)})
+                        Tween(IndicatorIcon, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Rotation = 0})
                         pcall(callback, val)
                     end)
                     
@@ -1218,24 +1256,24 @@ function Library:CreateWindow(config)
             end)
             
             HeaderButton.MouseEnter:Connect(function()
-                Tween(DropdownContainer, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementHover})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentColor})
+                Tween(DropdownContainer, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementHover})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentColor})
             end)
             HeaderButton.MouseLeave:Connect(function()
-                Tween(DropdownContainer, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementBackground})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                Tween(DropdownContainer, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementBackground})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
             end)
             
             HeaderButton.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
                 if isOpen then
-                    Tween(DropdownContainer, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {Size = UDim2.new(1, 0, 0, 164)})
-                    Tween(IndicatorIcon, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {Rotation = 180, ImageColor3 = Library.Theme.AccentColor})
-                    Tween(TitleLabel, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextPrimary})
+                    Tween(DropdownContainer, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 164)})
+                    Tween(IndicatorIcon, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Rotation = 180, ImageColor3 = Library.Theme.AccentColor})
+                    Tween(TitleLabel, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextPrimary})
                 else
-                    Tween(DropdownContainer, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {Size = UDim2.new(1, 0, 0, 36)})
-                    Tween(IndicatorIcon, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {Rotation = 0, ImageColor3 = Library.Theme.TextSecondary})
-                    Tween(TitleLabel, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextSecondary})
+                    Tween(DropdownContainer, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 36)})
+                    Tween(IndicatorIcon, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Rotation = 0, ImageColor3 = Library.Theme.TextSecondary})
+                    Tween(TitleLabel, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextSecondary})
                 end
             end)
             
@@ -1309,8 +1347,8 @@ function Library:CreateWindow(config)
             local function StartListening()
                 listening = true
                 DisplayText.Text = "[...]"
-                Tween(InnerStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentColor})
-                Tween(Label, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextPrimary})
+                Tween(InnerStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentColor})
+                Tween(Label, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextPrimary})
             end
             
             local inputConnection
@@ -1320,8 +1358,8 @@ function Library:CreateWindow(config)
                         assignedKey = input.KeyCode
                         listening = false
                         DisplayText.Text = assignedKey.Name:upper()
-                        Tween(InnerStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
-                        Tween(Label, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextSecondary})
+                        Tween(InnerStroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
+                        Tween(Label, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextSecondary})
                     end
                 elseif not listening and input.KeyCode == assignedKey and not processed then
                     pcall(callback)
@@ -1335,12 +1373,12 @@ function Library:CreateWindow(config)
             end)
             
             TriggerBtn.MouseEnter:Connect(function()
-                Tween(BindFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementHover})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentColor})
+                Tween(BindFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementHover})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentColor})
             end)
             TriggerBtn.MouseLeave:Connect(function()
-                Tween(BindFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementBackground})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                Tween(BindFrame, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementBackground})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
             end)
         end
         
@@ -1538,22 +1576,22 @@ function Library:CreateWindow(config)
             end)
             
             HeaderButton.MouseEnter:Connect(function()
-                Tween(PickerContainer, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementHover})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.AccentColor})
+                Tween(PickerContainer, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementHover})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.AccentColor})
             end)
             HeaderButton.MouseLeave:Connect(function()
-                Tween(PickerContainer, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {BackgroundColor3 = Library.Theme.ElementBackground})
-                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad), {Color = Library.Theme.BorderColor})
+                Tween(PickerContainer, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {BackgroundColor3 = Library.Theme.ElementBackground})
+                Tween(Stroke, TweenInfo.new(0.12, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Color = Library.Theme.BorderColor})
             end)
             
             HeaderButton.MouseButton1Click:Connect(function()
                 expanded = not expanded
                 if expanded then
-                    Tween(PickerContainer, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {Size = UDim2.new(1, 0, 0, 154)})
-                    Tween(TitleLabel, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextPrimary})
+                    Tween(PickerContainer, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 154)})
+                    Tween(TitleLabel, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextPrimary})
                 else
-                    Tween(PickerContainer, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {Size = UDim2.new(1, 0, 0, 36)})
-                    Tween(TitleLabel, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad), {TextColor3 = Library.Theme.TextSecondary})
+                    Tween(PickerContainer, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 36)})
+                    Tween(TitleLabel, TweenInfo.new(0.22, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextColor3 = Library.Theme.TextSecondary})
                 end
             end)
             
