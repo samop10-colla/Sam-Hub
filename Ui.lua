@@ -98,7 +98,8 @@ local Library = {
     Registry = {},
     Unloaded = false,
     UIKeybind = Enum.KeyCode.RightShift,
-    ActiveWindow = nil
+    ActiveWindow = nil,
+    NotificationsGui = nil
 }
 
 -- Safe Tween function wrapping to prevent failures from halting UI threads
@@ -203,6 +204,97 @@ function UI:CreateShadow(parent)
     shadow.SliceCenter = Rect.new(49, 49, 450, 450)
     shadow.Parent = parent
     return shadow
+end
+
+-- ========================================================================================
+-- PART 1: THE ROYAL NOTIFICATION & ALERTS SYSTEM
+-- ========================================================================================
+function Library:Notify(options)
+    options = options or {}
+    local title = options.Title or "Alert"
+    local content = options.Content or "Notification details."
+    local duration = options.Duration or 4
+    
+    if not Library.NotificationsGui then
+        Library.NotificationsGui = Instance.new("ScreenGui")
+        Library.NotificationsGui.Name = "SamsHub_Notifications"
+        Library.NotificationsGui.ResetOnSpawn = false
+        Library.NotificationsGui.IgnoreGuiInset = true
+        Library.NotificationsGui.Parent = TargetGuiContainer
+        
+        local LayoutFrame = Instance.new("Frame")
+        LayoutFrame.Name = "LayoutFrame"
+        LayoutFrame.Size = UDim2.new(0, 300, 1, -20)
+        LayoutFrame.Position = UDim2.new(1, -310, 0, 10)
+        LayoutFrame.BackgroundTransparency = 1
+        LayoutFrame.Parent = Library.NotificationsGui
+        
+        local ListLayout = Instance.new("UIListLayout")
+        ListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+        ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+        ListLayout.Padding = UDim.new(0, 8)
+        ListLayout.Parent = LayoutFrame
+    end
+    
+    local Container = Library.NotificationsGui.LayoutFrame
+    
+    local Notification = Instance.new("Frame")
+    Notification.Size = UDim2.new(1, 0, 0, 0) -- Starts thin for insertion animation
+    Notification.BackgroundColor3 = Library.Theme.SidebarBackground
+    Notification.BackgroundTransparency = 0.05
+    Notification.BorderSizePixel = 0
+    Notification.ClipsDescendants = true
+    Notification.Parent = Container
+    
+    UI:CreateCorner(Notification, UDim.new(0, 8))
+    local Border = UI:CreateStroke(Notification, Library.Theme.BorderColor, 1.2)
+    
+    local AccentBar = Instance.new("Frame")
+    AccentBar.Size = UDim2.new(0, 4, 1, 0)
+    AccentBar.Position = UDim2.new(0, 0, 0, 0)
+    AccentBar.BackgroundColor3 = Library.Theme.AccentColor
+    AccentBar.BorderSizePixel = 0
+    AccentBar.Parent = Notification
+    UI:CreateCorner(AccentBar, UDim.new(0, 8))
+    
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(1, -30, 0, 24)
+    TitleLabel.Position = UDim2.new(0, 12, 0, 6)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Text = title:upper()
+    TitleLabel.TextColor3 = Library.Theme.TextPrimary
+    TitleLabel.TextSize = 11
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Parent = Notification
+    
+    local ContentLabel = Instance.new("TextLabel")
+    ContentLabel.Size = UDim2.new(1, -24, 1, -36)
+    ContentLabel.Position = UDim2.new(0, 12, 0, 30)
+    ContentLabel.BackgroundTransparency = 1
+    ContentLabel.Font = Enum.Font.GothamMedium
+    ContentLabel.Text = content
+    ContentLabel.TextColor3 = Library.Theme.TextSecondary
+    ContentLabel.TextSize = 11
+    ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
+    ContentLabel.TextYAlignment = Enum.TextYAlignment.Top
+    ContentLabel.TextWrapped = true
+    ContentLabel.Parent = Notification
+
+    -- Animate insertion height
+    Tween(Notification, TweenInfo.new(0.3, Enum.EasingStyle.OutBack, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 74)})
+    task.wait(0.35)
+    
+    task.spawn(function()
+        task.wait(duration)
+        -- Animate shrink and fade out
+        Tween(Notification, TweenInfo.new(0.3, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1})
+        Tween(Border, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {Transparency = 1})
+        Tween(TitleLabel, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextTransparency = 1})
+        Tween(ContentLabel, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad, Enum.EasingDirection.Out), {TextTransparency = 1})
+        task.wait(0.35)
+        Notification:Destroy()
+    end)
 end
 
 -- ========================================================================================
@@ -434,6 +526,9 @@ function Library:CreateWindow(config)
         Library.Unloaded = true
         minimizeConnection:Disconnect()
         ScreenGui:Destroy()
+        if Library.NotificationsGui then
+            Library.NotificationsGui:Destroy()
+        end
     end
     
     CloseButton.MouseButton1Click:Connect(UnloadLibrary)
@@ -1046,7 +1141,7 @@ function Library:CreateWindow(config)
             SearchBar.TextColor3 = Library.Theme.TextPrimary
             SearchBar.TextSize = 11
             SearchBar.TextXAlignment = Enum.TextXAlignment.Left
-            SearchBar.Parent = SearchBar
+            SearchBar.Parent = SearchBarFrame
             
             local ListScroll = Instance.new("ScrollingFrame")
             ListScroll.Size = UDim2.new(1, 0, 1, -32)
