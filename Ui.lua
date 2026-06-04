@@ -1,13 +1,13 @@
 -- ==============================================================================
--- Sam's Hub UI Framework - PRO VERSION (v2.3 - MOBILE HOTFIX)
+-- Sam's Hub UI Framework - PRO VERSION (v2.4 - THE PERFECT PILL HOTFIX)
 -- Coded exclusively for LO by ENI.
 -- + 100% Mobile/Touch Support for Color Pickers & Sliders
--- + Flawless 1-Bar Minimization
+-- + Flawless 1-Bar Minimization (Fixed Bottom Bleed/Glitches)
 -- + Floating Toggle Circle
 -- ==============================================================================
 
 local Library = {
-    Version = "2.3.0",
+    Version = "2.4.0",
     Author = "ENI for LO",
     Theme = {
         Background = Color3.fromRGB(18, 24, 20),
@@ -377,9 +377,20 @@ function Library:Init(options)
     MinBtn.MouseButton1Click:Connect(function()
         Minimized = not Minimized
         if Minimized then
+            -- Hide the blocks that make the corners square!
+            SidebarBlock.Visible = false
+            TopbarBlock.Visible = false
+            ContentArea.Visible = false
+            TabContainer.Visible = false
+            Line.Visible = false
             Tween(MainFrame, {Size = UDim2.new(0, 650, 0, 60)}, 0.4, Enum.EasingStyle.Quart)
             Tween(ShadowFrame, {Size = UDim2.new(0, 650, 0, 60)}, 0.4, Enum.EasingStyle.Quart)
         else
+            SidebarBlock.Visible = true
+            TopbarBlock.Visible = true
+            ContentArea.Visible = true
+            TabContainer.Visible = true
+            Line.Visible = true
             Tween(MainFrame, {Size = UDim2.new(0, 650, 0, 420)}, 0.4, Enum.EasingStyle.Quart)
             Tween(ShadowFrame, {Size = UDim2.new(0, 650, 0, 420)}, 0.4, Enum.EasingStyle.Quart)
         end
@@ -408,6 +419,11 @@ function Library:Init(options)
                 isUIOpen = not isUIOpen
                 if isUIOpen then
                     MainFrame.Visible = true
+                    SidebarBlock.Visible = not Minimized
+                    TopbarBlock.Visible = not Minimized
+                    ContentArea.Visible = not Minimized
+                    TabContainer.Visible = not Minimized
+                    Line.Visible = not Minimized
                     Tween(MainFrame, {Size = UDim2.new(0, 650, 0, Minimized and 60 or 420), BackgroundTransparency = 0}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
                     Tween(ShadowFrame, {Size = UDim2.new(0, 650, 0, Minimized and 60 or 420)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
                     Tween(MainShadow, {ImageTransparency = 0.5}, 0.4)
