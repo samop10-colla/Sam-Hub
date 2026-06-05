@@ -32,7 +32,7 @@
 ]]
 
 -- ═══════════════════════════════════════════════════
---  SERVICES
+--  SERVICES & CORE SETUP
 -- ═══════════════════════════════════════════════════
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -40,8 +40,20 @@ local RunService       = game:GetService("RunService")
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
 
-local LocalPlayer = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
 local Mouse       = LocalPlayer:GetMouse()
+
+-- Automatic GUI injection parent detection (prevents "locked parent" errors)
+local ParentGui
+local success, err = pcall(function()
+    local test = Instance.new("Folder")
+    test.Parent = CoreGui
+    test:Destroy()
+    ParentGui = CoreGui
+end)
+if not success or not ParentGui then
+    ParentGui = LocalPlayer:WaitForChild("PlayerGui")
+end
 
 -- ═══════════════════════════════════════════════════
 --  LIBRARY TABLE
@@ -172,9 +184,14 @@ function Util.MakeDraggable(frame, handle)
             dragging  = true
             dragStart = input.Position
             startPos  = frame.Position
-            input.Changed:Connect(function()
+            
+            local connection
+            connection = input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
+                    if connection then
+                        connection:Disconnect()
+                    end
                 end
             end)
         end
@@ -217,13 +234,6 @@ local function CreateLoadingScreen(config)
         ZIndex = 100,
     }, screenGui)
 
-    -- Subtle noise/grid background
-    local bgGrid = Util.Make("Frame", {
-        Size = UDim2.fromScale(1, 1),
-        BackgroundTransparency = 1,
-        ZIndex = 100,
-    }, overlay)
-
     -- Radial glow center
     local glowCenter = Util.Make("Frame", {
         Size = UDim2.fromOffset(600, 600),
@@ -234,10 +244,12 @@ local function CreateLoadingScreen(config)
     }, overlay)
     Util.RoundCorners(glowCenter, 300)
 
-    -- Animate glow pulse
+    -- Animate glow pulse (with safety checks to prevent console warnings)
     local function pulseGlow()
+        if not glowCenter or not glowCenter.Parent then return end
         Util.Tween(glowCenter, { BackgroundTransparency = 0.82, Size = UDim2.fromOffset(640, 640), Position = UDim2.new(0.5,-320,0.5,-320) }, 1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
         task.delay(1.2, function()
+            if not glowCenter or not glowCenter.Parent then return end
             Util.Tween(glowCenter, { BackgroundTransparency = 0.90, Size = UDim2.fromOffset(560, 560), Position = UDim2.new(0.5,-280,0.5,-280) }, 1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
             task.delay(1.2, pulseGlow)
         end)
@@ -365,7 +377,7 @@ local function CreateLoadingScreen(config)
         }, corner)
     end
 
-    screenGui.Parent = CoreGui
+    screenGui.Parent = ParentGui
 
     -- Animate in
     task.spawn(function()
@@ -437,7 +449,7 @@ function SamsHub:CreateWindow(config)
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.ResetOnSpawn = false
     ScreenGui.IgnoreGuiInset = true
-    ScreenGui.Parent = CoreGui
+    ScreenGui.Parent = ParentGui
 
     -- ─── Backdrop glow ─────────────────────────────
     local GlowBack = Util.Make("Frame", {
@@ -983,7 +995,7 @@ function SamsHub:CreateWindow(config)
             Util.RoundCorners(selLabel, 5)
 
             local dropList = Util.Make("Frame", {
-                Size = UDim2.new(0, selLabel.Size.X.Offset, 0, 0),
+                Size = UDim2.new(0.5, -8, 0, 0),
                 Position = UDim2.new(0.5, 4, 1, 2),
                 BackgroundColor3 = Theme.Surface,
                 ClipsDescendants = true,
@@ -996,14 +1008,14 @@ function SamsHub:CreateWindow(config)
 
             local function closeDropdown()
                 isOpen = false
-                Util.Tween(dropList, { Size = UDim2.new(0, selLabel.AbsoluteSize.X, 0, 0) }, 0.2, Enum.EasingStyle.Quint)
+                Util.Tween(dropList, { Size = UDim2.new(0.5, -8, 0, 0) }, 0.2, Enum.EasingStyle.Quint)
             end
 
             selLabel.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
                 if isOpen then
                     local h = math.min(#options * 26 + 4, 120)
-                    Util.Tween(dropList, { Size = UDim2.new(0, selLabel.AbsoluteSize.X, 0, h) }, 0.25, Enum.EasingStyle.Back)
+                    Util.Tween(dropList, { Size = UDim2.new(0.5, -8, 0, h) }, 0.25, Enum.EasingStyle.Back)
                 else closeDropdown() end
             end)
 
@@ -1222,14 +1234,14 @@ function SamsHub:CreateWindow(config)
                 Util.Tween(keyBtn, { BackgroundColor3 = Theme.AccentDark }, 0.15)
             end)
 
-            UserInputService.InputBegan:Connect(function(inp)
+            UserInputService.InputBegan:Connect(function(inp, gameProcessed)
+                if gameProcessed and not listening then return end
                 if listening and inp.UserInputType == Enum.UserInputType.Keyboard then
                     key = inp.KeyCode
                     keyBtn.Text = "[" .. key.Name .. "]"
                     Util.Tween(keyBtn, { BackgroundColor3 = Theme.SurfaceAlt }, 0.2)
                     listening = false
-                end
-                if not listening and inp.KeyCode == key then
+                elseif not listening and inp.KeyCode == key then
                     if cfg.Callback then cfg.Callback() end
                 end
             end)
