@@ -1,19 +1,11 @@
 --[[
     XREZT HUB - PREMIUM ROBLOX UI LIBRARY FRAMEWORK
-    Version: 1.0.0
+    Version: 1.0.1 (Hotfix: Loading Screen & Theme Engine)
     Description: A highly optimized, responsive, and animated glassmorphism UI framework.
-    Architect: Senior UI/UX Engineer
-    
-    Features:
-    - 10 Built-in Themes with Smooth Transitions
-    - Advanced Motion Loading Screen
-    - Floating Window Design with Custom Draggable Spawner
-    - Full Component Suite (Sliders, Color Pickers, Dropdowns, etc.)
-    - PC, Mobile, and Tablet friendly
 ]]
 
 local XreztHub = {
-    Version = "1.0.0",
+    Version = "1.0.1",
     ThemeRegistry = {},
     CurrentTheme = "Midnight Slate",
     Connections = {},
@@ -46,6 +38,13 @@ else
         UIContainer = CoreGui
     else
         UIContainer = LocalPlayer:WaitForChild("PlayerGui")
+    end
+end
+
+-- Clear previous instances for testing
+for _, gui in pairs(UIContainer:GetChildren()) do
+    if gui.Name == "XreztHub_Framework" then
+        gui:Destroy()
     end
 end
 
@@ -323,6 +322,7 @@ function XreztHub:LoadXrezt(config)
             Utility:RegisterTheme(particle, "BackgroundColor3", "Accent")
 
             local function float()
+                if not particle or not particle.Parent then return end -- Fix error after destroy
                 local t = Utility:Tween(particle, {
                     Position = UDim2.new(math.random(), 0, math.random(), 0),
                     Rotation = math.random(0, 360)
@@ -372,7 +372,7 @@ function XreztHub:LoadXrezt(config)
                 Rotation = 90
             })
         })
-        Utility:RegisterTheme(bar.UIGradient, "Color", "Accent") -- Simplified theme registering for gradient
+        -- HOTFIX: Do not register gradients to the Color3 theme engine to prevent crashing.
         return bar
     end
 
@@ -449,73 +449,86 @@ function XreztHub:LoadXrezt(config)
     })
     Utility:RegisterTheme(PercentText, "TextColor3", "Accent")
 
-    -- Sequence Animations
-    task.wait(0.5)
-    
-    -- 1. Logo Appear
-    Utility:Tween(X1, {BackgroundTransparency = 0}, 0.8, Enum.EasingStyle.Quint)
-    Utility:Tween(X2, {BackgroundTransparency = 0}, 0.8, Enum.EasingStyle.Quint)
-    
-    -- X Animation Loop
-    local runConnection
-    runConnection = RunService.RenderStepped:Connect(function()
-        XContainer.Rotation = XContainer.Rotation + 0.5
-    end)
-
-    task.wait(0.5)
-    
-    -- 2. Text Appear
-    Utility:Tween(MainTitle, {TextTransparency = 0}, 0.6)
-    Utility:Tween(SubTitle, {TextTransparency = 0}, 0.6)
-    Utility:Tween(ProgressBack, {BackgroundTransparency = 0}, 0.6)
-    Utility:Tween(PercentText, {TextTransparency = 0}, 0.6)
-
-    task.wait(0.5)
-
-    -- 3. Progress Simulation
-    local stages = {
-        {progress = 0.2, text = "LOADING ASSETS...", wait = 0.4},
-        {progress = 0.45, text = "BUILDING UI...", wait = 0.6},
-        {progress = 0.7, text = "CACHING THEMES...", wait = 0.3},
-        {progress = 0.9, text = "FINALIZING...", wait = 0.5},
-        {progress = 1, text = "READY", wait = 0.2}
-    }
-
-    for _, stage in ipairs(stages) do
-        Utility:Tween(ProgressFill, {Size = UDim2.new(stage.progress, 0, 1, 0)}, stage.wait, Enum.EasingStyle.Quad)
-        SubTitle.Text = stage.text
+    -- Wrap the sequence in a spawn so it doesn't yield the main script execution
+    task.spawn(function()
+        task.wait(0.5)
         
-        local tweenVal = Instance.new("NumberValue")
-        tweenVal.Value = tonumber(PercentText.Text:match("%d+"))
-        local t = Utility:Tween(tweenVal, {Value = stage.progress * 100}, stage.wait)
+        -- 1. Logo Appear
+        Utility:Tween(X1, {BackgroundTransparency = 0}, 0.8, Enum.EasingStyle.Quint)
+        Utility:Tween(X2, {BackgroundTransparency = 0}, 0.8, Enum.EasingStyle.Quint)
         
-        t.Changed:Connect(function()
-            PercentText.Text = math.floor(tweenVal.Value) .. "%"
+        -- X Animation Loop
+        local runConnection
+        runConnection = RunService.RenderStepped:Connect(function()
+            if XContainer and XContainer.Parent then
+                XContainer.Rotation = XContainer.Rotation + 0.5
+            else
+                runConnection:Disconnect()
+            end
         end)
+
+        task.wait(0.5)
         
-        task.wait(stage.wait)
-    end
+        -- 2. Text Appear
+        Utility:Tween(MainTitle, {TextTransparency = 0}, 0.6)
+        Utility:Tween(SubTitle, {TextTransparency = 0}, 0.6)
+        Utility:Tween(ProgressBack, {BackgroundTransparency = 0}, 0.6)
+        Utility:Tween(PercentText, {TextTransparency = 0}, 0.6)
 
-    task.wait(0.5)
+        task.wait(0.5)
 
-    -- 4. Completion & Fade Out
-    runConnection:Disconnect()
-    Utility:Tween(XContainer, {Rotation = 360, Size = UDim2.new(0, 0, 0, 0)}, 0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-    Utility:Tween(MainTitle, {TextTransparency = 1, Position = UDim2.new(0.5, 0, 0.9, 0)}, 0.4)
-    Utility:Tween(SubTitle, {TextTransparency = 1}, 0.3)
-    Utility:Tween(ProgressBack, {BackgroundTransparency = 1}, 0.3)
-    Utility:Tween(ProgressFill, {BackgroundTransparency = 1}, 0.3)
-    Utility:Tween(PercentText, {TextTransparency = 1}, 0.3)
+        -- 3. Progress Simulation
+        local stages = {
+            {progress = 0.2, text = "LOADING ASSETS...", wait = 0.4},
+            {progress = 0.45, text = "BUILDING UI...", wait = 0.6},
+            {progress = 0.7, text = "CACHING THEMES...", wait = 0.3},
+            {progress = 0.9, text = "FINALIZING...", wait = 0.5},
+            {progress = 1, text = "READY", wait = 0.2}
+        }
 
-    task.wait(0.6)
-    
-    local endTween = Utility:Tween(LoadingContainer, {BackgroundTransparency = 1}, 0.8)
-    for _, child in pairs(ParticlesContainer:GetChildren()) do
-        Utility:Tween(child, {BackgroundTransparency = 1}, 0.5)
-    end
+        for _, stage in ipairs(stages) do
+            if not ProgressFill or not ProgressFill.Parent then break end
+            Utility:Tween(ProgressFill, {Size = UDim2.new(stage.progress, 0, 1, 0)}, stage.wait, Enum.EasingStyle.Quad)
+            SubTitle.Text = stage.text
+            
+            local tweenVal = Instance.new("NumberValue")
+            tweenVal.Value = tonumber(PercentText.Text:match("%d+"))
+            local t = Utility:Tween(tweenVal, {Value = stage.progress * 100}, stage.wait)
+            
+            t.Changed:Connect(function()
+                if PercentText and PercentText.Parent then
+                    PercentText.Text = math.floor(tweenVal.Value) .. "%"
+                end
+            end)
+            
+            task.wait(stage.wait)
+        end
 
-    endTween.Completed:Wait()
-    LoadingContainer:Destroy()
+        task.wait(0.5)
+
+        -- 4. Completion & Fade Out
+        if runConnection then runConnection:Disconnect() end
+        if XContainer and XContainer.Parent then
+            Utility:Tween(XContainer, {Rotation = 360, Size = UDim2.new(0, 0, 0, 0)}, 0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+            Utility:Tween(MainTitle, {TextTransparency = 1, Position = UDim2.new(0.5, 0, 0.9, 0)}, 0.4)
+            Utility:Tween(SubTitle, {TextTransparency = 1}, 0.3)
+            Utility:Tween(ProgressBack, {BackgroundTransparency = 1}, 0.3)
+            Utility:Tween(ProgressFill, {BackgroundTransparency = 1}, 0.3)
+            Utility:Tween(PercentText, {TextTransparency = 1}, 0.3)
+        end
+
+        task.wait(0.6)
+        
+        if LoadingContainer and LoadingContainer.Parent then
+            local endTween = Utility:Tween(LoadingContainer, {BackgroundTransparency = 1}, 0.8)
+            for _, child in pairs(ParticlesContainer:GetChildren()) do
+                Utility:Tween(child, {BackgroundTransparency = 1}, 0.5)
+            end
+
+            endTween.Completed:Wait()
+            LoadingContainer:Destroy()
+        end
+    end)
 end
 
 --=========================================--
@@ -1405,7 +1418,7 @@ function XreztHub:CreateWindow(options)
                     })
                 })
             })
-            -- Simulate Saturation & Value gradients via Image overlay (standard trick)
+            -- Simulate Saturation & Value gradients via Image overlay
             local Overlay = Utility:Create("ImageLabel", {
                 Size = UDim2.new(1, 0, 1, 0),
                 BackgroundTransparency = 1,
