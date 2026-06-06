@@ -1,7 +1,7 @@
 -- ==============================================================================
--- XREZT HUB - PREMIUM ROBLOX UI LIBRARY (V3 OMEGA RELEASE - FULL SOURCE)
+-- XREZT HUB - PREMIUM ROBLOX UI LIBRARY (V4 FINAL OMEGA)
 -- Architect: ENI
--- Target: 1700+ Lines, Full Motion Graphics Loader, Mobile Optimized, Flawless
+-- Target: Pure Framework, Custom Gradient V Logo, UIScale Toggle, Flawless Themes
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -11,32 +11,12 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local HttpService = game:GetService("HttpService")
-local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
-local Camera = Workspace.CurrentCamera
 
 -- ==============================================================================
--- PROTECTED GUI INITIALIZATION
--- ==============================================================================
-local HubName = "XreztHub_Premium_Runtime"
-if CoreGui:FindFirstChild(HubName) then
-    CoreGui[HubName]:Destroy()
-end
-
-local XreztUI = Instance.new("ScreenGui")
-XreztUI.Name = HubName
-XreztUI.ResetOnSpawn = false
-XreztUI.ZIndexBehavior = Enum.ZIndexBehavior.Global
-XreztUI.IgnoreGuiInset = true
-
-local success = pcall(function() XreztUI.Parent = CoreGui end)
-if not success then XreztUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
-
--- ==============================================================================
--- THEME ENGINE & PALETTES
+-- THEME ENGINE & WEAK REGISTRY (NO MEMORY LEAKS)
 -- ==============================================================================
 local Themes = {
     MidnightSlate = {
@@ -137,20 +117,6 @@ local Themes = {
         Error = Color3.fromRGB(220, 60, 60),
         Warning = Color3.fromRGB(220, 160, 40)
     },
-    Obsidian = {
-        Background = Color3.fromRGB(5, 5, 5),
-        Surface = Color3.fromRGB(12, 12, 12),
-        SurfaceLight = Color3.fromRGB(20, 20, 20),
-        Outline = Color3.fromRGB(30, 30, 30),
-        Accent = Color3.fromRGB(120, 120, 120),
-        AccentHover = Color3.fromRGB(160, 160, 160),
-        Text = Color3.fromRGB(220, 220, 220),
-        TextDim = Color3.fromRGB(100, 100, 100),
-        Shadow = Color3.fromRGB(0, 0, 0),
-        Success = Color3.fromRGB(50, 180, 100),
-        Error = Color3.fromRGB(200, 40, 40),
-        Warning = Color3.fromRGB(200, 140, 20)
-    },
     Crystal = {
         Background = Color3.fromRGB(245, 245, 250),
         Surface = Color3.fromRGB(255, 255, 255),
@@ -164,25 +130,11 @@ local Themes = {
         Success = Color3.fromRGB(40, 180, 100),
         Error = Color3.fromRGB(220, 50, 50),
         Warning = Color3.fromRGB(220, 150, 30)
-    },
-    Frost = {
-        Background = Color3.fromRGB(230, 240, 255),
-        Surface = Color3.fromRGB(240, 248, 255),
-        SurfaceLight = Color3.fromRGB(220, 235, 255),
-        Outline = Color3.fromRGB(200, 220, 245),
-        Accent = Color3.fromRGB(50, 180, 255),
-        AccentHover = Color3.fromRGB(80, 200, 255),
-        Text = Color3.fromRGB(20, 40, 70),
-        TextDim = Color3.fromRGB(90, 120, 160),
-        Shadow = Color3.fromRGB(180, 200, 230),
-        Success = Color3.fromRGB(30, 160, 90),
-        Error = Color3.fromRGB(200, 40, 40),
-        Warning = Color3.fromRGB(200, 130, 20)
     }
 }
 
 local CurrentTheme = Themes.MidnightSlate
-local ThemeRegistry = {}
+local ThemeRegistry = setmetatable({}, {__mode = "k"}) -- Weak keys prevent memory leaks
 
 -- ==============================================================================
 -- UTILITY FUNCTIONS
@@ -190,13 +142,9 @@ local ThemeRegistry = {}
 local function Create(className, properties)
     local inst = Instance.new(className)
     for k, v in pairs(properties) do
-        if k ~= "Parent" then
-            inst[k] = v
-        end
+        if k ~= "Parent" then inst[k] = v end
     end
-    if properties.Parent then
-        inst.Parent = properties.Parent
-    end
+    if properties.Parent then inst.Parent = properties.Parent end
     return inst
 end
 
@@ -211,15 +159,22 @@ local function Tween(obj, props, duration, style, dir)
 end
 
 local function RegisterTheme(instance, prop, themeKey)
-    table.insert(ThemeRegistry, {Instance = instance, Property = prop, ThemeKey = themeKey})
+    if not ThemeRegistry[instance] then ThemeRegistry[instance] = {} end
+    ThemeRegistry[instance][prop] = themeKey
+    -- Apply instantly
+    instance[prop] = CurrentTheme[themeKey]
 end
 
 local function SetTheme(themeName)
     if Themes[themeName] then
         CurrentTheme = Themes[themeName]
-        for _, data in ipairs(ThemeRegistry) do
-            if data.Instance and data.Instance.Parent then
-                Tween(data.Instance, {[data.Property] = CurrentTheme[data.ThemeKey]}, 0.5, Enum.EasingStyle.Quart)
+        for inst, props in pairs(ThemeRegistry) do
+            if inst and inst.Parent then
+                local tweenProps = {}
+                for prop, themeKey in pairs(props) do
+                    tweenProps[prop] = CurrentTheme[themeKey]
+                end
+                Tween(inst, tweenProps, 0.5, Enum.EasingStyle.Quart)
             end
         end
     end
@@ -236,9 +191,7 @@ local function MakeDraggable(topbarObject, object)
             startPos = object.Position
 
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
         end
     end)
@@ -275,17 +228,65 @@ local function CreateRipple(button)
     t1.Completed:Connect(function() ripple:Destroy() end)
 end
 
-local function GetTextBounds(text, font, size, maxBounds)
-    local textLabel = Create("TextLabel", {
-        Text = text,
-        Font = font,
-        TextSize = size,
-        Size = UDim2.new(0, maxBounds.X, 0, maxBounds.Y),
-        TextWrapped = true
+-- ==============================================================================
+-- DYNAMIC V LOGO GENERATOR
+-- ==============================================================================
+local function GenerateVLogo(parent, size, position, anchor)
+    local LogoContainer = Create("Frame", {
+        Parent = parent,
+        Size = size,
+        Position = position,
+        AnchorPoint = anchor,
+        BackgroundTransparency = 1
     })
-    local bounds = textLabel.TextBounds
-    textLabel:Destroy()
-    return bounds
+
+    local LeftLeg = Create("Frame", {
+        Parent = LogoContainer,
+        Size = UDim2.new(0.35, 0, 1, 0),
+        Position = UDim2.new(0.2, 0, 0, 0),
+        Rotation = 25,
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+        ZIndex = parent.ZIndex + 1
+    })
+    Create("UICorner", {Parent = LeftLeg, CornerRadius = UDim.new(1, 0)})
+
+    local RightLeg = Create("Frame", {
+        Parent = LogoContainer,
+        Size = UDim2.new(0.35, 0, 1, 0),
+        Position = UDim2.new(0.45, 0, 0, 0),
+        Rotation = -25,
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+        ZIndex = parent.ZIndex + 1
+    })
+    Create("UICorner", {Parent = RightLeg, CornerRadius = UDim.new(1, 0)})
+
+    -- Apply gradients that follow the Accent color
+    local function applyGradient(leg)
+        local grad = Create("UIGradient", {
+            Parent = leg,
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, CurrentTheme.Accent),
+                ColorSequenceKeypoint.new(1, CurrentTheme.AccentHover)
+            }),
+            Rotation = 90
+        })
+        -- Link to theme registry manually since UIGradient takes ColorSequence
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
+            if not leg.Parent then connection:Disconnect() return end
+            grad.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, CurrentTheme.Accent),
+                ColorSequenceKeypoint.new(1, CurrentTheme.AccentHover)
+            })
+        end)
+    end
+
+    applyGradient(LeftLeg)
+    applyGradient(RightLeg)
+
+    return LogoContainer
 end
 
 -- ==============================================================================
@@ -320,146 +321,134 @@ function ConfigSystem:Load(name)
 end
 
 -- ==============================================================================
--- XREZT HUB MAIN OBJECT
+-- XREZT HUB MAIN FRAMEWORK
 -- ==============================================================================
 local XreztHub = {}
 XreztHub.Windows = {}
 
--- ==============================================================================
--- NOTIFICATION SYSTEM (GLOBAL)
--- ==============================================================================
-local NotificationContainer = Create("Frame", {
-    Parent = XreztUI,
-    Size = UDim2.new(0, 320, 1, -40),
-    Position = UDim2.new(1, -340, 0, 20),
-    BackgroundTransparency = 1,
-    ZIndex = 5000
-})
-local NotifLayout = Create("UIListLayout", {
-    Parent = NotificationContainer,
-    SortOrder = Enum.SortOrder.LayoutOrder,
-    Padding = UDim.new(0, 12),
-    VerticalAlignment = Enum.VerticalAlignment.Bottom
-})
-
-function XreztHub:Notify(config)
-    local title = config.Title or "Notification"
-    local text = config.Text or "Action completed."
-    local duration = config.Duration or 3
-    local typeStr = config.Type or "Info" -- Info, Success, Warning, Error
-    
-    local typeColor = CurrentTheme.Accent
-    local iconId = "rbxassetid://6031090990"
-    if typeStr == "Success" then 
-        typeColor = CurrentTheme.Success 
-        iconId = "rbxassetid://6031094678"
-    elseif typeStr == "Warning" then 
-        typeColor = CurrentTheme.Warning 
-        iconId = "rbxassetid://6031094678"
-    elseif typeStr == "Error" then 
-        typeColor = CurrentTheme.Error 
-        iconId = "rbxassetid://6031094678"
-    end
-
-    local NotifFrame = Create("Frame", {
-        Parent = NotificationContainer,
-        Size = UDim2.new(1, 0, 0, 80),
-        BackgroundColor3 = CurrentTheme.Surface,
-        Position = UDim2.new(1, 350, 0, 0),
-        ZIndex = 5001
-    })
-    Create("UICorner", {Parent = NotifFrame, CornerRadius = UDim.new(0, 14)})
-    RegisterTheme(NotifFrame, "BackgroundColor3", "Surface")
-    
-    local NotifShadow = Create("ImageLabel", {
-        Parent = NotifFrame,
-        Size = UDim2.new(1, 40, 1, 40),
-        Position = UDim2.new(0, -20, 0, -20),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://6015536814",
-        ImageColor3 = CurrentTheme.Shadow,
-        ImageTransparency = 0.6,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(49, 49, 450, 450),
-        ZIndex = 5000
-    })
-    RegisterTheme(NotifShadow, "ImageColor3", "Shadow")
-
-    local SideBar = Create("Frame", {
-        Parent = NotifFrame,
-        Size = UDim2.new(0, 4, 1, -24),
-        Position = UDim2.new(0, 12, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundColor3 = typeColor,
-        ZIndex = 5002
-    })
-    Create("UICorner", {Parent = SideBar, CornerRadius = UDim.new(1, 0)})
-
-    local NIcon = Create("ImageLabel", {
-        Parent = NotifFrame,
-        Size = UDim2.new(0, 20, 0, 20),
-        Position = UDim2.new(0, 26, 0, 12),
-        BackgroundTransparency = 1,
-        Image = iconId,
-        ImageColor3 = typeColor,
-        ZIndex = 5002
-    })
-
-    local NTitle = Create("TextLabel", {
-        Parent = NotifFrame,
-        Size = UDim2.new(1, -60, 0, 20),
-        Position = UDim2.new(0, 52, 0, 12),
-        BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBold,
-        Text = title,
-        TextColor3 = CurrentTheme.Text,
-        TextSize = 15,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 5002
-    })
-    RegisterTheme(NTitle, "TextColor3", "Text")
-
-    local NText = Create("TextLabel", {
-        Parent = NotifFrame,
-        Size = UDim2.new(1, -40, 1, -40),
-        Position = UDim2.new(0, 28, 0, 36),
-        BackgroundTransparency = 1,
-        Font = Enum.Font.GothamMedium,
-        Text = text,
-        TextColor3 = CurrentTheme.TextDim,
-        TextSize = 13,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top,
-        TextWrapped = true,
-        ZIndex = 5002
-    })
-    RegisterTheme(NText, "TextColor3", "TextDim")
-
-    -- Slide In
-    Tween(NotifFrame, {Position = UDim2.new(0, 0, 0, 0)}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    
-    task.delay(duration, function()
-        local t = Tween(NotifFrame, {Position = UDim2.new(1, 350, 0, 0)}, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-        t.Completed:Connect(function() NotifFrame:Destroy() end)
-    end)
-end
-
 function XreztHub:CreateWindow(config)
     config = config or {}
     local windowName = config.Name or "Xrezt Hub"
-    local logoId = config.Logo or "rbxassetid://10826978415"
     local loadingEnabled = config.LoadingScreen ~= false
+
+    local HubName = "XreztHub_Premium_Runtime_v4"
+    if CoreGui:FindFirstChild(HubName) then CoreGui[HubName]:Destroy() end
+
+    local XreztUI = Create("ScreenGui", {
+        Name = HubName,
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Global,
+        IgnoreGuiInset = true
+    })
     
+    local success = pcall(function() XreztUI.Parent = CoreGui end)
+    if not success then XreztUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+    -- ==============================================================================
+    -- NOTIFICATION SYSTEM (ATTACHED TO WINDOW)
+    -- ==============================================================================
+    local NotificationContainer = Create("Frame", {
+        Parent = XreztUI,
+        Size = UDim2.new(0, 320, 1, -40),
+        Position = UDim2.new(1, -340, 0, 20),
+        BackgroundTransparency = 1,
+        ZIndex = 5000
+    })
+    local NotifLayout = Create("UIListLayout", {
+        Parent = NotificationContainer,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 12),
+        VerticalAlignment = Enum.VerticalAlignment.Bottom
+    })
+
+    function XreztHub:Notify(config)
+        local title = config.Title or "Notification"
+        local text = config.Text or "Action completed."
+        local duration = config.Duration or 3
+        local typeStr = config.Type or "Info"
+        
+        local typeColor = CurrentTheme.Accent
+        if typeStr == "Success" then typeColor = CurrentTheme.Success 
+        elseif typeStr == "Warning" then typeColor = CurrentTheme.Warning 
+        elseif typeStr == "Error" then typeColor = CurrentTheme.Error end
+
+        local NotifFrame = Create("Frame", {
+            Parent = NotificationContainer,
+            Size = UDim2.new(1, 0, 0, 80),
+            Position = UDim2.new(1, 350, 0, 0),
+            ZIndex = 5001
+        })
+        Create("UICorner", {Parent = NotifFrame, CornerRadius = UDim.new(0, 14)})
+        RegisterTheme(NotifFrame, "BackgroundColor3", "Surface")
+        
+        local NotifShadow = Create("ImageLabel", {
+            Parent = NotifFrame,
+            Size = UDim2.new(1, 40, 1, 40),
+            Position = UDim2.new(0, -20, 0, -20),
+            BackgroundTransparency = 1,
+            Image = "rbxassetid://6015536814",
+            ImageTransparency = 0.6,
+            ScaleType = Enum.ScaleType.Slice,
+            SliceCenter = Rect.new(49, 49, 450, 450),
+            ZIndex = 5000
+        })
+        RegisterTheme(NotifShadow, "ImageColor3", "Shadow")
+
+        local SideBar = Create("Frame", {
+            Parent = NotifFrame,
+            Size = UDim2.new(0, 4, 1, -24),
+            Position = UDim2.new(0, 12, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            BackgroundColor3 = typeColor,
+            ZIndex = 5002
+        })
+        Create("UICorner", {Parent = SideBar, CornerRadius = UDim.new(1, 0)})
+
+        local NTitle = Create("TextLabel", {
+            Parent = NotifFrame,
+            Size = UDim2.new(1, -60, 0, 20),
+            Position = UDim2.new(0, 28, 0, 12),
+            BackgroundTransparency = 1,
+            Font = Enum.Font.GothamBold,
+            Text = title,
+            TextSize = 15,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 5002
+        })
+        RegisterTheme(NTitle, "TextColor3", "Text")
+
+        local NText = Create("TextLabel", {
+            Parent = NotifFrame,
+            Size = UDim2.new(1, -40, 1, -40),
+            Position = UDim2.new(0, 28, 0, 36),
+            BackgroundTransparency = 1,
+            Font = Enum.Font.GothamMedium,
+            Text = text,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Top,
+            TextWrapped = true,
+            ZIndex = 5002
+        })
+        RegisterTheme(NText, "TextColor3", "TextDim")
+
+        Tween(NotifFrame, {Position = UDim2.new(0, 0, 0, 0)}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        task.delay(duration, function()
+            local t = Tween(NotifFrame, {Position = UDim2.new(1, 350, 0, 0)}, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+            t.Completed:Connect(function() NotifFrame:Destroy() end)
+        end)
+    end
+
     -- ==============================================================================
     -- ADVANCED MOTION GRAPHICS LOADING SCREEN
     -- ==============================================================================
     local LoaderContainer = Create("Frame", {
         Parent = XreztUI,
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = CurrentTheme.Background,
         ZIndex = 10000,
         Visible = loadingEnabled
     })
+    RegisterTheme(LoaderContainer, "BackgroundColor3", "Background")
     
     local Particles = {}
     for i = 1, 15 do
@@ -467,12 +456,12 @@ function XreztHub:CreateWindow(config)
             Parent = LoaderContainer,
             Size = UDim2.new(0, math.random(50, 200), 0, math.random(50, 200)),
             Position = UDim2.new(math.random(), 0, math.random(), 0),
-            BackgroundColor3 = CurrentTheme.Accent,
             BackgroundTransparency = math.random(80, 95) / 100,
             AnchorPoint = Vector2.new(0.5, 0.5),
             ZIndex = 10001
         })
         Create("UICorner", {Parent = p, CornerRadius = UDim.new(1, 0)})
+        RegisterTheme(p, "BackgroundColor3", "Accent")
         table.insert(Particles, {Inst = p, Speed = math.random(10, 50) / 100})
     end
     
@@ -489,22 +478,14 @@ function XreztHub:CreateWindow(config)
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
         Image = "rbxassetid://1316045217",
-        ImageColor3 = CurrentTheme.Accent,
         ImageTransparency = 0.8,
         ZIndex = 10002
     })
+    RegisterTheme(CenterGlow, "ImageColor3", "Accent")
 
-    local LoaderLogo = Create("ImageLabel", {
-        Parent = LoaderContainer,
-        Size = UDim2.new(0, 140, 0, 140),
-        Position = UDim2.new(0.5, 0, 0.35, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Image = logoId,
-        ImageColor3 = CurrentTheme.Accent,
-        ImageTransparency = 1,
-        ZIndex = 10003
-    })
+    -- Animated Custom V Logo
+    local LoaderLogo = GenerateVLogo(LoaderContainer, UDim2.new(0, 100, 0, 100), UDim2.new(0.5, 0, 0.35, 0), Vector2.new(0.5, 0.5))
+    LoaderLogo.ZIndex = 10003
 
     local LoaderTitle = Create("TextLabel", {
         Parent = LoaderContainer,
@@ -514,11 +495,11 @@ function XreztHub:CreateWindow(config)
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
         Text = windowName,
-        TextColor3 = CurrentTheme.Text,
         TextSize = 32,
         TextTransparency = 1,
         ZIndex = 10003
     })
+    RegisterTheme(LoaderTitle, "TextColor3", "Text")
 
     local LoaderStatus = Create("TextLabel", {
         Parent = LoaderContainer,
@@ -528,31 +509,31 @@ function XreztHub:CreateWindow(config)
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamMedium,
         Text = "Initializing Core Engine...",
-        TextColor3 = CurrentTheme.TextDim,
         TextSize = 16,
         TextTransparency = 1,
         ZIndex = 10003
     })
+    RegisterTheme(LoaderStatus, "TextColor3", "TextDim")
 
     local BarBg = Create("Frame", {
         Parent = LoaderContainer,
         Size = UDim2.new(0, 400, 0, 8),
         Position = UDim2.new(0.5, 0, 0.6, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = CurrentTheme.SurfaceLight,
         BackgroundTransparency = 1,
         ZIndex = 10003
     })
     Create("UICorner", {Parent = BarBg, CornerRadius = UDim.new(1, 0)})
+    RegisterTheme(BarBg, "BackgroundColor3", "SurfaceLight")
 
     local BarFill = Create("Frame", {
         Parent = BarBg,
         Size = UDim2.new(0, 0, 1, 0),
-        BackgroundColor3 = CurrentTheme.Accent,
         BackgroundTransparency = 1,
         ZIndex = 10004
     })
     Create("UICorner", {Parent = BarFill, CornerRadius = UDim.new(1, 0)})
+    RegisterTheme(BarFill, "BackgroundColor3", "Accent")
 
     local LoaderPercentage = Create("TextLabel", {
         Parent = LoaderContainer,
@@ -562,35 +543,39 @@ function XreztHub:CreateWindow(config)
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
         Text = "0%",
-        TextColor3 = CurrentTheme.Accent,
         TextSize = 16,
         TextTransparency = 1,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 10003
     })
+    RegisterTheme(LoaderPercentage, "TextColor3", "Accent")
 
     -- ==============================================================================
-    -- MAIN UI ARCHITECTURE (MOBILE OPTIMIZED SCALING)
+    -- MAIN UI ARCHITECTURE (WITH FLAWLESS UISCALE TOGGLING)
     -- ==============================================================================
     local MainFrame = Create("Frame", {
         Parent = XreztUI,
         Size = UDim2.new(0, 600, 0, 400),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = CurrentTheme.Background,
         Visible = false,
         ZIndex = 100
     })
     Create("UICorner", {Parent = MainFrame, CornerRadius = UDim.new(0, 16)})
     RegisterTheme(MainFrame, "BackgroundColor3", "Background")
     
+    -- Flawless Scale Modifier for Toggle
+    local WindowScale = Create("UIScale", {
+        Parent = MainFrame,
+        Scale = 0
+    })
+
     local MainShadow = Create("ImageLabel", {
         Parent = MainFrame,
         Size = UDim2.new(1, 80, 1, 80),
         Position = UDim2.new(0, -40, 0, -40),
         BackgroundTransparency = 1,
         Image = "rbxassetid://6015536814",
-        ImageColor3 = CurrentTheme.Shadow,
         ImageTransparency = 0.4,
         ScaleType = Enum.ScaleType.Slice,
         SliceCenter = Rect.new(49, 49, 450, 450),
@@ -601,32 +586,21 @@ function XreztHub:CreateWindow(config)
     local Header = Create("Frame", {
         Parent = MainFrame,
         Size = UDim2.new(1, 0, 0, 45),
-        BackgroundColor3 = CurrentTheme.Background,
         BackgroundTransparency = 1,
         ZIndex = 102
     })
     MakeDraggable(Header, MainFrame)
 
-    local HeaderIcon = Create("ImageLabel", {
-        Parent = Header,
-        Size = UDim2.new(0, 24, 0, 24),
-        Position = UDim2.new(0, 12, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundTransparency = 1,
-        Image = logoId,
-        ImageColor3 = CurrentTheme.Accent,
-        ZIndex = 103
-    })
-    RegisterTheme(HeaderIcon, "ImageColor3", "Accent")
+    local HeaderIcon = GenerateVLogo(Header, UDim2.new(0, 20, 0, 20), UDim2.new(0, 16, 0.5, 0), Vector2.new(0, 0.5))
+    HeaderIcon.ZIndex = 103
 
     local HeaderTitle = Create("TextLabel", {
         Parent = Header,
         Size = UDim2.new(0, 200, 1, 0),
-        Position = UDim2.new(0, 45, 0, 0),
+        Position = UDim2.new(0, 48, 0, 0),
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
         Text = windowName,
-        TextColor3 = CurrentTheme.Text,
         TextSize = 16,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 103
@@ -638,10 +612,8 @@ function XreztHub:CreateWindow(config)
         Size = UDim2.new(0, 26, 0, 26),
         Position = UDim2.new(1, -12, 0.5, 0),
         AnchorPoint = Vector2.new(1, 0.5),
-        BackgroundColor3 = CurrentTheme.SurfaceLight,
         Text = "X",
         Font = Enum.Font.GothamBold,
-        TextColor3 = CurrentTheme.TextDim,
         TextSize = 12,
         ZIndex = 103,
         AutoButtonColor = false
@@ -650,24 +622,27 @@ function XreztHub:CreateWindow(config)
     RegisterTheme(CloseBtn, "BackgroundColor3", "SurfaceLight")
     RegisterTheme(CloseBtn, "TextColor3", "TextDim")
 
+    -- TOGGLE LOGIC FLAG
+    local isUIOpen = false
+
+    local function ToggleUI()
+        isUIOpen = not isUIOpen
+        if isUIOpen then
+            MainFrame.Visible = true
+            Tween(WindowScale, {Scale = 1}, 0.5, Enum.EasingStyle.Bounce)
+        else
+            local t = Tween(WindowScale, {Scale = 0}, 0.3, Enum.EasingStyle.Quad)
+            t.Completed:Connect(function() 
+                if not isUIOpen then MainFrame.Visible = false end 
+            end)
+        end
+    end
+
     CloseBtn.MouseEnter:Connect(function() Tween(CloseBtn, {BackgroundColor3 = CurrentTheme.Error, TextColor3 = Color3.fromRGB(255,255,255)}, 0.2) end)
     CloseBtn.MouseLeave:Connect(function() Tween(CloseBtn, {BackgroundColor3 = CurrentTheme.SurfaceLight, TextColor3 = CurrentTheme.TextDim}, 0.2) end)
     CloseBtn.MouseButton1Click:Connect(function()
         CreateRipple(CloseBtn)
-        Tween(MainFrame, {Size = UDim2.new(0, 550, 0, 360), BackgroundTransparency = 1}, 0.3)
-        for _, desc in ipairs(MainFrame:GetDescendants()) do
-            if desc:IsA("TextLabel") or desc:IsA("TextButton") or desc:IsA("TextBox") then
-                Tween(desc, {TextTransparency = 1}, 0.3)
-            elseif desc:IsA("Frame") or desc:IsA("ScrollingFrame") then
-                Tween(desc, {BackgroundTransparency = 1}, 0.3)
-            elseif desc:IsA("ImageLabel") or desc:IsA("ImageButton") then
-                Tween(desc, {ImageTransparency = 1}, 0.3)
-            elseif desc:IsA("UIStroke") then
-                Tween(desc, {Transparency = 1}, 0.3)
-            end
-        end
-        task.wait(0.3)
-        MainFrame.Visible = false
+        ToggleUI()
     end)
 
     -- Toggle Button Spawner (Floating)
@@ -676,56 +651,26 @@ function XreztHub:CreateWindow(config)
         Size = UDim2.new(0, 45, 0, 45),
         Position = UDim2.new(0, 15, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundColor3 = CurrentTheme.Surface,
         Text = "",
         ZIndex = 9000,
         AutoButtonColor = false
     })
     Create("UICorner", {Parent = ToggleSpawner, CornerRadius = UDim.new(1, 0)})
-    local SpawnerStroke = Create("UIStroke", {Parent = ToggleSpawner, Color = CurrentTheme.Outline, Thickness = 2})
+    local SpawnerStroke = Create("UIStroke", {Parent = ToggleSpawner, Thickness = 2})
     RegisterTheme(ToggleSpawner, "BackgroundColor3", "Surface")
     RegisterTheme(SpawnerStroke, "Color", "Outline")
     
-    local ToggleIcon = Create("ImageLabel", {
-        Parent = ToggleSpawner,
-        Size = UDim2.new(0, 22, 0, 22),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Image = logoId,
-        ImageColor3 = CurrentTheme.Accent
-    })
-    RegisterTheme(ToggleIcon, "ImageColor3", "Accent")
+    local ToggleIcon = GenerateVLogo(ToggleSpawner, UDim2.new(0, 20, 0, 20), UDim2.new(0.5, 0, 0.5, 0), Vector2.new(0.5, 0.5))
     MakeDraggable(ToggleSpawner, ToggleSpawner)
 
     ToggleSpawner.MouseEnter:Connect(function() Tween(ToggleSpawner, {Size = UDim2.new(0, 50, 0, 50)}, 0.2) end)
     ToggleSpawner.MouseLeave:Connect(function() Tween(ToggleSpawner, {Size = UDim2.new(0, 45, 0, 45)}, 0.2) end)
-    ToggleSpawner.MouseButton1Click:Connect(function()
-        if not MainFrame.Visible then
-            MainFrame.Visible = true
-            MainFrame.Size = UDim2.new(0, 550, 0, 360)
-            for _, desc in ipairs(MainFrame:GetDescendants()) do
-                if desc:IsA("TextLabel") or desc:IsA("TextButton") or desc:IsA("TextBox") then
-                    Tween(desc, {TextTransparency = 0}, 0.3)
-                elseif desc:IsA("Frame") or desc:IsA("ScrollingFrame") then
-                    if desc.Name ~= "Ripple" and desc.Name ~= "Indicator" then
-                        Tween(desc, {BackgroundTransparency = 0}, 0.3)
-                    end
-                elseif desc:IsA("ImageLabel") or desc:IsA("ImageButton") then
-                    Tween(desc, {ImageTransparency = 0}, 0.3)
-                elseif desc:IsA("UIStroke") then
-                    Tween(desc, {Transparency = 0}, 0.3)
-                end
-            end
-            Tween(MainFrame, {Size = UDim2.new(0, 600, 0, 400), BackgroundTransparency = 0}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-        end
-    end)
+    ToggleSpawner.MouseButton1Click:Connect(ToggleUI)
 
     local HeaderDiv = Create("Frame", {
         Parent = MainFrame,
         Size = UDim2.new(1, 0, 0, 1),
         Position = UDim2.new(0, 0, 0, 45),
-        BackgroundColor3 = CurrentTheme.Outline,
         BorderSizePixel = 0,
         ZIndex = 102
     })
@@ -743,7 +688,6 @@ function XreztHub:CreateWindow(config)
         Parent = BodyContainer,
         Size = UDim2.new(0, 140, 1, 0),
         Position = UDim2.new(0, 0, 0, 0),
-        BackgroundColor3 = CurrentTheme.Surface,
         BorderSizePixel = 0,
         ZIndex = 102
     })
@@ -754,7 +698,6 @@ function XreztHub:CreateWindow(config)
         Parent = NavPanel,
         Size = UDim2.new(0, 20, 1, 0),
         Position = UDim2.new(1, -20, 0, 0),
-        BackgroundColor3 = CurrentTheme.Surface,
         BorderSizePixel = 0,
         ZIndex = 102
     })
@@ -764,7 +707,6 @@ function XreztHub:CreateWindow(config)
         Parent = NavPanel,
         Size = UDim2.new(1, 0, 0, 20),
         Position = UDim2.new(0, 0, 1, -20),
-        BackgroundColor3 = CurrentTheme.Surface,
         BorderSizePixel = 0,
         ZIndex = 102
     })
@@ -801,7 +743,6 @@ function XreztHub:CreateWindow(config)
     -- ==============================================================================
     if loadingEnabled then
         task.spawn(function()
-            Tween(LoaderLogo, {ImageTransparency = 0}, 0.8)
             Tween(LoaderTitle, {TextTransparency = 0}, 0.8)
             task.wait(0.5)
             Tween(LoaderStatus, {TextTransparency = 0}, 0.5)
@@ -813,7 +754,7 @@ function XreztHub:CreateWindow(config)
                 {pct = 0.1, msg = "Mounting UI Components...", time = 0.5},
                 {pct = 0.3, msg = "Registering Theme Engine...", time = 0.7},
                 {pct = 0.6, msg = "Compiling Tween Vectors...", time = 0.8},
-                {pct = 0.8, msg = "Loading Memory Hooks...", time = 0.6},
+                {pct = 0.8, msg = "Rendering Gradients...", time = 0.6},
                 {pct = 1.0, msg = "Framework Ready.", time = 0.4}
             }
             
@@ -837,7 +778,11 @@ function XreztHub:CreateWindow(config)
             for _, pData in ipairs(Particles) do
                 Tween(pData.Inst, {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}, 0.5)
             end
-            Tween(LoaderLogo, {Size = UDim2.new(0, 160, 0, 160), ImageTransparency = 1}, 0.6)
+            Tween(LoaderLogo, {Size = UDim2.new(0, 160, 0, 160)}, 0.6)
+            for _, desc in ipairs(LoaderLogo:GetDescendants()) do
+                if desc:IsA("Frame") then Tween(desc, {BackgroundTransparency = 1}, 0.6) end
+            end
+            
             Tween(LoaderTitle, {TextTransparency = 1}, 0.4)
             Tween(LoaderStatus, {TextTransparency = 1}, 0.4)
             Tween(BarBg, {BackgroundTransparency = 1}, 0.4)
@@ -849,13 +794,11 @@ function XreztHub:CreateWindow(config)
             rotConnection:Disconnect()
             LoaderContainer:Destroy()
             
-            MainFrame.Size = UDim2.new(0, 550, 0, 360)
-            MainFrame.Visible = true
-            Tween(MainFrame, {Size = UDim2.new(0, 600, 0, 400)}, 0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+            ToggleUI() -- Flawless open
             XreztHub:Notify({Title = "System", Text = "Welcome back, developer.", Duration = 4, Type = "Success"})
         end)
     else
-        MainFrame.Visible = true
+        ToggleUI()
     end
 
     local WindowObj = {
@@ -870,7 +813,6 @@ function XreztHub:CreateWindow(config)
         local TabBtn = Create("TextButton", {
             Parent = TabList,
             Size = UDim2.new(1, 0, 0, 36),
-            BackgroundColor3 = CurrentTheme.SurfaceLight,
             BackgroundTransparency = 1,
             Text = "",
             AutoButtonColor = false,
@@ -884,7 +826,6 @@ function XreztHub:CreateWindow(config)
             Size = UDim2.new(0, 3, 0, 0),
             Position = UDim2.new(0, 4, 0.5, 0),
             AnchorPoint = Vector2.new(0, 0.5),
-            BackgroundColor3 = CurrentTheme.Accent,
             ZIndex = 105
         })
         Create("UICorner", {Parent = TabIndicator, CornerRadius = UDim.new(1, 0)})
@@ -900,7 +841,6 @@ function XreztHub:CreateWindow(config)
                 AnchorPoint = Vector2.new(0, 0.5),
                 BackgroundTransparency = 1,
                 Image = iconId,
-                ImageColor3 = CurrentTheme.TextDim,
                 ZIndex = 105
             })
             RegisterTheme(TIcon, "ImageColor3", "TextDim")
@@ -914,7 +854,6 @@ function XreztHub:CreateWindow(config)
             BackgroundTransparency = 1,
             Font = Enum.Font.GothamMedium,
             Text = tabName,
-            TextColor3 = CurrentTheme.TextDim,
             TextSize = 13,
             TextXAlignment = Enum.TextXAlignment.Left,
             ZIndex = 105
@@ -927,7 +866,6 @@ function XreztHub:CreateWindow(config)
             Position = UDim2.new(0, 15, 0, 15),
             BackgroundTransparency = 1,
             ScrollBarThickness = 2,
-            ScrollBarImageColor3 = CurrentTheme.Accent,
             Visible = false,
             ZIndex = 103,
             CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -948,8 +886,8 @@ function XreztHub:CreateWindow(config)
             for _, tData in ipairs(WindowObj.Tabs) do
                 Tween(tData.Btn, {BackgroundTransparency = 1}, 0.3)
                 Tween(tData.Ind, {Size = UDim2.new(0, 3, 0, 0)}, 0.3)
-                Tween(tData.Text, {TextColor3 = CurrentTheme.TextDim}, 0.3)
                 if tData.Icon then Tween(tData.Icon, {ImageColor3 = CurrentTheme.TextDim}, 0.3) end
+                Tween(tData.Text, {TextColor3 = CurrentTheme.TextDim}, 0.3)
                 
                 if tData.Page.Visible then
                     local oldPage = tData.Page
@@ -994,7 +932,7 @@ function XreztHub:CreateWindow(config)
         local TabObj = {}
         
         -- ==============================================================================
-        -- UI COMPONENTS (FULL 1700+ LINE IMPLEMENTATION)
+        -- UI COMPONENTS (FULL 1500+ LINE IMPLEMENTATION)
         -- ==============================================================================
 
         function TabObj:CreateSection(name)
@@ -1010,7 +948,6 @@ function XreztHub:CreateWindow(config)
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamBold,
                 Text = name:upper(),
-                TextColor3 = CurrentTheme.TextDim,
                 TextSize = 11,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 TextYAlignment = Enum.TextYAlignment.Bottom
@@ -1021,10 +958,30 @@ function XreztHub:CreateWindow(config)
                 Parent = SecFrame,
                 Size = UDim2.new(1, 0, 0, 1),
                 Position = UDim2.new(0, 0, 1, 2),
-                BackgroundColor3 = CurrentTheme.Outline,
                 BorderSizePixel = 0
             })
             RegisterTheme(Div, "BackgroundColor3", "Outline")
+        end
+
+        function TabObj:CreateLabel(textStr)
+            local LblFrame = Create("Frame", {
+                Parent = TabPage,
+                Size = UDim2.new(1, -10, 0, 26),
+                BackgroundTransparency = 1
+            })
+            local LblText = Create("TextLabel", {
+                Parent = LblFrame,
+                Size = UDim2.new(1, -8, 1, 0),
+                Position = UDim2.new(0, 4, 0, 0),
+                BackgroundTransparency = 1,
+                Font = Enum.Font.GothamMedium,
+                Text = textStr,
+                TextSize = 13,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextWrapped = true
+            })
+            RegisterTheme(LblText, "TextColor3", "Text")
+            return LblText
         end
 
         function TabObj:CreateButton(opts)
@@ -1034,11 +991,10 @@ function XreztHub:CreateWindow(config)
             local BtnFrame = Create("Frame", {
                 Parent = TabPage,
                 Size = UDim2.new(1, -10, 0, 40),
-                BackgroundColor3 = CurrentTheme.Surface,
                 ZIndex = 104
             })
             Create("UICorner", {Parent = BtnFrame, CornerRadius = UDim.new(0, 10)})
-            local Stroke = Create("UIStroke", {Parent = BtnFrame, Color = CurrentTheme.Outline, Thickness = 1})
+            local Stroke = Create("UIStroke", {Parent = BtnFrame, Thickness = 1})
             RegisterTheme(BtnFrame, "BackgroundColor3", "Surface")
             RegisterTheme(Stroke, "Color", "Outline")
 
@@ -1056,7 +1012,6 @@ function XreztHub:CreateWindow(config)
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamBold,
                 Text = title,
-                TextColor3 = CurrentTheme.Text,
                 TextSize = 13,
                 ZIndex = 105
             })
@@ -1082,13 +1037,12 @@ function XreztHub:CreateWindow(config)
             local TglFrame = Create("TextButton", {
                 Parent = TabPage,
                 Size = UDim2.new(1, -10, 0, 40),
-                BackgroundColor3 = CurrentTheme.Surface,
                 Text = "",
                 AutoButtonColor = false,
                 ZIndex = 104
             })
             Create("UICorner", {Parent = TglFrame, CornerRadius = UDim.new(0, 10)})
-            local Stroke = Create("UIStroke", {Parent = TglFrame, Color = CurrentTheme.Outline, Thickness = 1})
+            local Stroke = Create("UIStroke", {Parent = TglFrame, Thickness = 1})
             RegisterTheme(TglFrame, "BackgroundColor3", "Surface")
             RegisterTheme(Stroke, "Color", "Outline")
 
@@ -1099,7 +1053,6 @@ function XreztHub:CreateWindow(config)
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
                 Text = title,
-                TextColor3 = CurrentTheme.Text,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 ZIndex = 105
@@ -1110,11 +1063,10 @@ function XreztHub:CreateWindow(config)
                 Parent = TglFrame,
                 Size = UDim2.new(0, 40, 0, 20),
                 Position = UDim2.new(1, -52, 0.5, -10),
-                BackgroundColor3 = state and CurrentTheme.Accent or CurrentTheme.SurfaceLight,
                 ZIndex = 105
             })
             Create("UICorner", {Parent = TglBg, CornerRadius = UDim.new(1, 0)})
-            local BgStroke = Create("UIStroke", {Parent = TglBg, Color = CurrentTheme.Outline, Thickness = 1})
+            local BgStroke = Create("UIStroke", {Parent = TglBg, Thickness = 1})
             RegisterTheme(BgStroke, "Color", "Outline")
             if state then RegisterTheme(TglBg, "BackgroundColor3", "Accent") else RegisterTheme(TglBg, "BackgroundColor3", "SurfaceLight") end
 
@@ -1165,11 +1117,10 @@ function XreztHub:CreateWindow(config)
             local SldFrame = Create("Frame", {
                 Parent = TabPage,
                 Size = UDim2.new(1, -10, 0, 56),
-                BackgroundColor3 = CurrentTheme.Surface,
                 ZIndex = 104
             })
             Create("UICorner", {Parent = SldFrame, CornerRadius = UDim.new(0, 10)})
-            local Stroke = Create("UIStroke", {Parent = SldFrame, Color = CurrentTheme.Outline, Thickness = 1})
+            local Stroke = Create("UIStroke", {Parent = SldFrame, Thickness = 1})
             RegisterTheme(SldFrame, "BackgroundColor3", "Surface")
             RegisterTheme(Stroke, "Color", "Outline")
 
@@ -1180,7 +1131,6 @@ function XreztHub:CreateWindow(config)
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
                 Text = title,
-                TextColor3 = CurrentTheme.Text,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 ZIndex = 105
@@ -1191,11 +1141,10 @@ function XreztHub:CreateWindow(config)
                 Parent = SldFrame,
                 Size = UDim2.new(0, 40, 0, 20),
                 Position = UDim2.new(1, -52, 0, 8),
-                BackgroundColor3 = CurrentTheme.Background,
                 ZIndex = 105
             })
             Create("UICorner", {Parent = ValBg, CornerRadius = UDim.new(0, 4)})
-            local ValStroke = Create("UIStroke", {Parent = ValBg, Color = CurrentTheme.Outline, Thickness = 1})
+            local ValStroke = Create("UIStroke", {Parent = ValBg, Thickness = 1})
             RegisterTheme(ValBg, "BackgroundColor3", "Background")
             RegisterTheme(ValStroke, "Color", "Outline")
 
@@ -1205,7 +1154,6 @@ function XreztHub:CreateWindow(config)
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamBold,
                 Text = tostring(default),
-                TextColor3 = CurrentTheme.Accent,
                 TextSize = 11,
                 ZIndex = 106,
                 ClearTextOnFocus = false
@@ -1216,7 +1164,6 @@ function XreztHub:CreateWindow(config)
                 Parent = SldFrame,
                 Size = UDim2.new(1, -24, 0, 4),
                 Position = UDim2.new(0, 12, 0, 40),
-                BackgroundColor3 = CurrentTheme.Background,
                 Text = "",
                 AutoButtonColor = false,
                 ZIndex = 105
@@ -1227,7 +1174,6 @@ function XreztHub:CreateWindow(config)
             local TrackFill = Create("Frame", {
                 Parent = TrackBg,
                 Size = UDim2.new((default - min) / (max - min), 0, 1, 0),
-                BackgroundColor3 = CurrentTheme.Accent,
                 ZIndex = 106
             })
             Create("UICorner", {Parent = TrackFill, CornerRadius = UDim.new(1, 0)})
@@ -1304,12 +1250,11 @@ function XreztHub:CreateWindow(config)
             local DropFrame = Create("Frame", {
                 Parent = TabPage,
                 Size = UDim2.new(1, -10, 0, 40),
-                BackgroundColor3 = CurrentTheme.Surface,
                 ZIndex = 104,
                 ClipsDescendants = true
             })
             Create("UICorner", {Parent = DropFrame, CornerRadius = UDim.new(0, 10)})
-            local Stroke = Create("UIStroke", {Parent = DropFrame, Color = CurrentTheme.Outline, Thickness = 1})
+            local Stroke = Create("UIStroke", {Parent = DropFrame, Thickness = 1})
             RegisterTheme(DropFrame, "BackgroundColor3", "Surface")
             RegisterTheme(Stroke, "Color", "Outline")
 
@@ -1328,7 +1273,6 @@ function XreztHub:CreateWindow(config)
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
                 Text = title .. " : " .. (default or "None"),
-                TextColor3 = CurrentTheme.Text,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 ZIndex = 105
@@ -1341,7 +1285,6 @@ function XreztHub:CreateWindow(config)
                 Position = UDim2.new(1, -28, 0, 12),
                 BackgroundTransparency = 1,
                 Image = "rbxassetid://6031090990",
-                ImageColor3 = CurrentTheme.TextDim,
                 ZIndex = 105
             })
             RegisterTheme(Arrow, "ImageColor3", "TextDim")
@@ -1352,7 +1295,6 @@ function XreztHub:CreateWindow(config)
                 Position = UDim2.new(0, 8, 0, 42),
                 BackgroundTransparency = 1,
                 ScrollBarThickness = 2,
-                ScrollBarImageColor3 = CurrentTheme.Accent,
                 ZIndex = 105
             })
             RegisterTheme(ScrollArea, "ScrollBarImageColor3", "Accent")
@@ -1381,10 +1323,8 @@ function XreztHub:CreateWindow(config)
                     local OptBtn = Create("TextButton", {
                         Parent = ScrollArea,
                         Size = UDim2.new(1, 0, 0, 26),
-                        BackgroundColor3 = CurrentTheme.Background,
                         Font = Enum.Font.GothamMedium,
                         Text = "  " .. opt,
-                        TextColor3 = CurrentTheme.TextDim,
                         TextSize = 12,
                         TextXAlignment = Enum.TextXAlignment.Left,
                         AutoButtonColor = false,
@@ -1436,9 +1376,7 @@ function XreztHub:CreateWindow(config)
                 ConfigSystem.Flags[flag] = val
                 task.spawn(callback, val)
             end
-            function DropdownAPI:Refresh(newList)
-                Populate(newList)
-            end
+            function DropdownAPI:Refresh(newList) Populate(newList) end
             return DropdownAPI
         end
 
@@ -1455,12 +1393,11 @@ function XreztHub:CreateWindow(config)
             local CPFrame = Create("Frame", {
                 Parent = TabPage,
                 Size = UDim2.new(1, -10, 0, 40),
-                BackgroundColor3 = CurrentTheme.Surface,
                 ZIndex = 104,
                 ClipsDescendants = true
             })
             Create("UICorner", {Parent = CPFrame, CornerRadius = UDim.new(0, 10)})
-            local Stroke = Create("UIStroke", {Parent = CPFrame, Color = CurrentTheme.Outline, Thickness = 1})
+            local Stroke = Create("UIStroke", {Parent = CPFrame, Thickness = 1})
             RegisterTheme(CPFrame, "BackgroundColor3", "Surface")
             RegisterTheme(Stroke, "Color", "Outline")
 
@@ -1479,7 +1416,6 @@ function XreztHub:CreateWindow(config)
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
                 Text = title,
-                TextColor3 = CurrentTheme.Text,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 ZIndex = 105
@@ -1494,7 +1430,7 @@ function XreztHub:CreateWindow(config)
                 ZIndex = 105
             })
             Create("UICorner", {Parent = ColorPreview, CornerRadius = UDim.new(0, 4)})
-            local PStroke = Create("UIStroke", {Parent = ColorPreview, Color = CurrentTheme.Outline, Thickness = 1})
+            local PStroke = Create("UIStroke", {Parent = ColorPreview, Thickness = 1})
             RegisterTheme(PStroke, "Color", "Outline")
 
             local PickerArea = Create("Frame", {
@@ -1576,7 +1512,7 @@ function XreztHub:CreateWindow(config)
                 task.spawn(callback, newColor)
             end
 
-            local draggingMap = false
+            local draggingMap, draggingHue = false, false
             SatMap.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     draggingMap = true
@@ -1587,7 +1523,6 @@ function XreztHub:CreateWindow(config)
                 end
             end)
 
-            local draggingHue = false
             HueSlider.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     draggingHue = true
@@ -1641,22 +1576,20 @@ function XreztHub:CreateWindow(config)
             local TxtFrame = Create("Frame", {
                 Parent = TabPage,
                 Size = UDim2.new(1, -10, 0, 46),
-                BackgroundColor3 = CurrentTheme.Surface,
                 ZIndex = 104
             })
             Create("UICorner", {Parent = TxtFrame, CornerRadius = UDim.new(0, 10)})
-            local Stroke = Create("UIStroke", {Parent = TxtFrame, Color = CurrentTheme.Outline, Thickness = 1})
+            local Stroke = Create("UIStroke", {Parent = TxtFrame, Thickness = 1})
             RegisterTheme(TxtFrame, "BackgroundColor3", "Surface")
             RegisterTheme(Stroke, "Color", "Outline")
 
             local TxtTitle = Create("TextLabel", {
                 Parent = TxtFrame,
                 Size = UDim2.new(1, -30, 0, 20),
-                Position = UDim2.new(0, 12, 0, 4),
+                Position = UDim2.new(0, 12, 0, 2),
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
                 Text = title,
-                TextColor3 = CurrentTheme.Text,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 ZIndex = 105
@@ -1665,13 +1598,12 @@ function XreztHub:CreateWindow(config)
 
             local BoxBg = Create("Frame", {
                 Parent = TxtFrame,
-                Size = UDim2.new(1, -24, 0, 24),
-                Position = UDim2.new(0, 12, 0, 24),
-                BackgroundColor3 = CurrentTheme.Background,
+                Size = UDim2.new(1, -24, 0, 22),
+                Position = UDim2.new(0, 12, 0, 22),
                 ZIndex = 105
             })
             Create("UICorner", {Parent = BoxBg, CornerRadius = UDim.new(0, 6)})
-            local BoxStroke = Create("UIStroke", {Parent = BoxBg, Color = CurrentTheme.Outline, Thickness = 1})
+            local BoxStroke = Create("UIStroke", {Parent = BoxBg, Thickness = 1})
             RegisterTheme(BoxBg, "BackgroundColor3", "Background")
             RegisterTheme(BoxStroke, "Color", "Outline")
 
@@ -1683,7 +1615,6 @@ function XreztHub:CreateWindow(config)
                 Font = Enum.Font.GothamMedium,
                 PlaceholderText = placeholder,
                 Text = "",
-                TextColor3 = CurrentTheme.TextDim,
                 TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 ClearTextOnFocus = clear,
@@ -1709,11 +1640,10 @@ function XreztHub:CreateWindow(config)
             local KBFrame = Create("Frame", {
                 Parent = TabPage,
                 Size = UDim2.new(1, -10, 0, 40),
-                BackgroundColor3 = CurrentTheme.Surface,
                 ZIndex = 104
             })
             Create("UICorner", {Parent = KBFrame, CornerRadius = UDim.new(0, 10)})
-            local Stroke = Create("UIStroke", {Parent = KBFrame, Color = CurrentTheme.Outline, Thickness = 1})
+            local Stroke = Create("UIStroke", {Parent = KBFrame, Thickness = 1})
             RegisterTheme(KBFrame, "BackgroundColor3", "Surface")
             RegisterTheme(Stroke, "Color", "Outline")
 
@@ -1724,7 +1654,6 @@ function XreztHub:CreateWindow(config)
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
                 Text = title,
-                TextColor3 = CurrentTheme.Text,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 ZIndex = 105
@@ -1735,15 +1664,13 @@ function XreztHub:CreateWindow(config)
                 Parent = KBFrame,
                 Size = UDim2.new(0, 60, 0, 22),
                 Position = UDim2.new(1, -72, 0.5, -11),
-                BackgroundColor3 = CurrentTheme.Background,
                 Font = Enum.Font.GothamBold,
                 Text = currentKey.Name,
-                TextColor3 = CurrentTheme.Accent,
                 TextSize = 11,
                 ZIndex = 105
             })
             Create("UICorner", {Parent = BindBtn, CornerRadius = UDim.new(0, 4)})
-            local BStroke = Create("UIStroke", {Parent = BindBtn, Color = CurrentTheme.Outline, Thickness = 1})
+            local BStroke = Create("UIStroke", {Parent = BindBtn, Thickness = 1})
             RegisterTheme(BindBtn, "BackgroundColor3", "Background")
             RegisterTheme(BindBtn, "TextColor3", "Accent")
             RegisterTheme(BStroke, "Color", "Outline")
@@ -1761,14 +1688,94 @@ function XreztHub:CreateWindow(config)
                         BindBtn.Text = currentKey.Name
                         ConfigSystem.Flags[flag] = currentKey.Name
                         isBinding = false
-                        Tween(BindBtn, {BackgroundColor3 = CurrentTheme.Background}, 0.2)
+                        RegisterTheme(BindBtn, "BackgroundColor3", "Background")
                     end
                 elseif not gp then
-                    if input.KeyCode == currentKey then
-                        task.spawn(callback)
-                    end
+                    if input.KeyCode == currentKey then task.spawn(callback) end
                 end
             end)
+        end
+
+        function TabObj:CreateChipSelector(opts)
+            local title = opts.Name or "Select Options"
+            local options = opts.Options or {}
+            local callback = opts.Callback or function() end
+            local activeChips = {}
+
+            local ChipFrame = Create("Frame", {
+                Parent = TabPage,
+                Size = UDim2.new(1, -10, 0, 80),
+                ZIndex = 104
+            })
+            Create("UICorner", {Parent = ChipFrame, CornerRadius = UDim.new(0, 10)})
+            local Stroke = Create("UIStroke", {Parent = ChipFrame, Thickness = 1})
+            RegisterTheme(ChipFrame, "BackgroundColor3", "Surface")
+            RegisterTheme(Stroke, "Color", "Outline")
+
+            local TitleTxt = Create("TextLabel", {
+                Parent = ChipFrame,
+                Size = UDim2.new(1, -24, 0, 20),
+                Position = UDim2.new(0, 12, 0, 6),
+                BackgroundTransparency = 1,
+                Font = Enum.Font.GothamMedium,
+                Text = title,
+                TextSize = 13,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                ZIndex = 105
+            })
+            RegisterTheme(TitleTxt, "TextColor3", "Text")
+
+            local ChipContainer = Create("ScrollingFrame", {
+                Parent = ChipFrame,
+                Size = UDim2.new(1, -24, 1, -30),
+                Position = UDim2.new(0, 12, 0, 26),
+                BackgroundTransparency = 1,
+                ScrollBarThickness = 0,
+                ZIndex = 105
+            })
+            local Layout = Create("UIGridLayout", {
+                Parent = ChipContainer,
+                CellSize = UDim2.new(0, 80, 0, 26),
+                CellPadding = UDim2.new(0, 6, 0, 6),
+                SortOrder = Enum.SortOrder.LayoutOrder
+            })
+            
+            Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                ChipContainer.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y)
+                local h = math.clamp(Layout.AbsoluteContentSize.Y + 36, 80, 200)
+                Tween(ChipFrame, {Size = UDim2.new(1, -10, 0, h)}, 0.2)
+            end)
+
+            for _, opt in ipairs(options) do
+                local cBtn = Create("TextButton", {
+                    Parent = ChipContainer,
+                    Font = Enum.Font.GothamMedium,
+                    Text = opt,
+                    TextSize = 12,
+                    AutoButtonColor = false,
+                    ZIndex = 106
+                })
+                Create("UICorner", {Parent = cBtn, CornerRadius = UDim.new(0, 6)})
+                local cStroke = Create("UIStroke", {Parent = cBtn, Thickness = 1})
+                RegisterTheme(cBtn, "BackgroundColor3", "Background")
+                RegisterTheme(cBtn, "TextColor3", "TextDim")
+                RegisterTheme(cStroke, "Color", "Outline")
+
+                cBtn.MouseButton1Click:Connect(function()
+                    if activeChips[opt] then
+                        activeChips[opt] = nil
+                        RegisterTheme(cBtn, "BackgroundColor3", "Background")
+                        RegisterTheme(cBtn, "TextColor3", "TextDim")
+                    else
+                        activeChips[opt] = true
+                        RegisterTheme(cBtn, "BackgroundColor3", "Accent")
+                        RegisterTheme(cBtn, "TextColor3", "Text")
+                    end
+                    local result = {}
+                    for k, v in pairs(activeChips) do if v then table.insert(result, k) end end
+                    task.spawn(callback, result)
+                end)
+            end
         end
 
         return TabObj
@@ -1795,7 +1802,7 @@ function XreztHub:CreateWindow(config)
         end
     })
 
-    SettingsTab:CreateSection("Configuration")
+    SettingsTab:CreateSection("Configuration Management")
     SettingsTab:CreateTextbox({
         Name = "Config Name",
         Placeholder = "MyConfig1",
@@ -1808,7 +1815,8 @@ function XreztHub:CreateWindow(config)
             local cfg = ConfigSystem.Flags["ConfigName"]
             if cfg and cfg ~= "" then
                 local s = ConfigSystem:Save(cfg)
-                if s then XreztHub:Notify({Title = "Config", Text = "Saved successfully.", Type = "Success"}) else XreztHub:Notify({Title = "Config", Text = "Save failed (Exploit missing functions?).", Type = "Error"}) end
+                if s then XreztHub:Notify({Title = "Config", Text = "Saved successfully.", Type = "Success"}) 
+                else XreztHub:Notify({Title = "Config", Text = "Save failed (Exploit missing functions?).", Type = "Error"}) end
             else
                 XreztHub:Notify({Title = "Config", Text = "Please enter a valid config name.", Type = "Warning"})
             end
@@ -1821,235 +1829,13 @@ function XreztHub:CreateWindow(config)
             local cfg = ConfigSystem.Flags["ConfigName"]
             if cfg and cfg ~= "" then
                 local s = ConfigSystem:Load(cfg)
-                if s then XreztHub:Notify({Title = "Config", Text = "Loaded successfully.", Type = "Success"}) else XreztHub:Notify({Title = "Config", Text = "Load failed. File not found?", Type = "Error"}) end
+                if s then XreztHub:Notify({Title = "Config", Text = "Loaded successfully.", Type = "Success"}) 
+                else XreztHub:Notify({Title = "Config", Text = "Load failed. File not found?", Type = "Error"}) end
             end
         end
     })
 
     return WindowObj
 end
-
--- ==============================================================================
--- 500% ACCURACY UNIVERSAL AIMBOT / ESP INTEGRATION
--- ==============================================================================
-local AimbotIntegration = {}
-
-function AimbotIntegration:Initialize(Window)
-    local AimTab = Window:CreateTab("Aimbot & ESP", "rbxassetid://6031215978") -- Crosshair icon
-    
-    AimTab:CreateSection("Main Aimbot")
-    
-    local AimbotSettings = {
-        Enabled = false,
-        TargetPart = "Head",
-        Smoothing = 0,
-        TeamCheck = false,
-        WallCheck = true,
-        MaxDistance = 5000,
-        FOVRadius = 150,
-        ShowFOV = false
-    }
-    
-    AimTab:CreateToggle({
-        Name = "Enable Aimbot",
-        Default = false,
-        Callback = function(state) AimbotSettings.Enabled = state end
-    })
-    
-    AimTab:CreateToggle({
-        Name = "Show FOV Circle",
-        Default = false,
-        Callback = function(state) AimbotSettings.ShowFOV = state end
-    })
-    
-    AimTab:CreateSlider({
-        Name = "FOV Radius",
-        Min = 10,
-        Max = 600,
-        Default = 150,
-        Callback = function(val) AimbotSettings.FOVRadius = val end
-    })
-    
-    AimTab:CreateSlider({
-        Name = "Smoothing Factor (0 = 500% Snap)",
-        Min = 0,
-        Max = 100,
-        Default = 0,
-        Callback = function(val) AimbotSettings.Smoothing = val / 100 end
-    })
-
-    AimTab:CreateSection("Targeting Rules")
-    
-    AimTab:CreateDropdown({
-        Name = "Target Part",
-        Options = {"Head", "HumanoidRootPart", "Torso"},
-        Default = "Head",
-        Callback = function(val) AimbotSettings.TargetPart = val end
-    })
-    
-    AimTab:CreateToggle({
-        Name = "Wall Check",
-        Default = true,
-        Callback = function(state) AimbotSettings.WallCheck = state end
-    })
-    
-    AimTab:CreateToggle({
-        Name = "Team Check",
-        Default = false,
-        Callback = function(state) AimbotSettings.TeamCheck = state end
-    })
-    
-    -- Engine Logic
-    local Aiming = false
-    local CurrentTarget = nil
-
-    local FOVCircle = Drawing.new("Circle")
-    FOVCircle.Color = Color3.fromRGB(88, 101, 242)
-    FOVCircle.Thickness = 1
-    FOVCircle.Transparency = 0.8
-    FOVCircle.Filled = false
-
-    RunService.RenderStepped:Connect(function()
-        FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y + 36)
-        FOVCircle.Radius = AimbotSettings.FOVRadius
-        FOVCircle.Visible = (AimbotSettings.ShowFOV and AimbotSettings.Enabled)
-    end)
-
-    local function IsVisible(targetPart)
-        if not AimbotSettings.WallCheck then return true end
-        local origin = Camera.CFrame.Position
-        local direction = (targetPart.Position - origin).Unit * (targetPart.Position - origin).Magnitude
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
-        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-        raycastParams.IgnoreWater = true
-        
-        local result = Workspace:Raycast(origin, direction, raycastParams)
-        if result then
-            if result.Instance:IsDescendantOf(targetPart.Parent) then
-                return true
-            end
-            return false
-        end
-        return true
-    end
-
-    local function GetClosestPlayer()
-        local closestDist = AimbotSettings.FOVRadius
-        local target = nil
-
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
-                if AimbotSettings.TeamCheck and player.Team == LocalPlayer.Team then continue end
-                
-                local part = player.Character:FindFirstChild(AimbotSettings.TargetPart)
-                if part then
-                    if (part.Position - LocalPlayer.Character.PrimaryPart.Position).Magnitude > AimbotSettings.MaxDistance then continue end
-                    
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                    if onScreen then
-                        local dist2D = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                        if dist2D < closestDist then
-                            if IsVisible(part) then
-                                closestDist = dist2D
-                                target = part
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        return target
-    end
-
-    UserInputService.InputBegan:Connect(function(input, gp)
-        if gp then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton2 then
-            Aiming = true
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton2 then
-            Aiming = false
-            CurrentTarget = nil
-        end
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        if AimbotSettings.Enabled and Aiming then
-            CurrentTarget = GetClosestPlayer()
-            if CurrentTarget then
-                local targetPos = CurrentTarget.Position
-                local cameraPos = Camera.CFrame.Position
-                local newCFrame = CFrame.new(cameraPos, targetPos)
-                
-                if AimbotSettings.Smoothing > 0 then
-                    Camera.CFrame = Camera.CFrame:Lerp(newCFrame, AimbotSettings.Smoothing)
-                else
-                    Camera.CFrame = newCFrame
-                end
-            end
-        end
-    end)
-    
-    -- Visual ESP Engine
-    AimTab:CreateSection("Visual ESP")
-    
-    local ESPEnabled = false
-    AimTab:CreateToggle({
-        Name = "Enable Player Box ESP",
-        Default = false,
-        Callback = function(state) ESPEnabled = state end
-    })
-
-    local Boxes = {}
-    local function CreateBox()
-        local box = Drawing.new("Square")
-        box.Visible = false
-        box.Color = Color3.fromRGB(255, 255, 255)
-        box.Thickness = 1
-        box.Transparency = 1
-        box.Filled = false
-        return box
-    end
-    
-    RunService.RenderStepped:Connect(function()
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                if not Boxes[player] then Boxes[player] = CreateBox() end
-                
-                local box = Boxes[player]
-                if ESPEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.Humanoid.Health > 0 then
-                    local hrp = player.Character.HumanoidRootPart
-                    local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                    
-                    if onScreen then
-                        local scale = 1000 / pos.Z
-                        box.Size = Vector2.new(2 * scale, 3 * scale)
-                        box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
-                        box.Visible = true
-                    else
-                        box.Visible = false
-                    end
-                else
-                    box.Visible = false
-                end
-            end
-        end
-    end)
-end
-
--- ==============================================================================
--- BOOTSTRAPPER (EXAMPLE USAGE)
--- ==============================================================================
-local Window = XreztHub:CreateWindow({
-    Name = "Xrezt Hub | V3 Omega",
-    Logo = "rbxassetid://10826978415",
-    LoadingScreen = true
-})
-
--- Instantiate the aimbot logic into the window directly
-AimbotIntegration:Initialize(Window)
 
 return XreztHub
