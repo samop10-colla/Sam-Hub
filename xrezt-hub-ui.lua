@@ -1,7 +1,6 @@
--- XREZT HUB - PREMIUM ROBLOX UI LIBRARY
+-- XREZT HUB - PREMIUM ROBLOX UI LIBRARY (PATCH V2)
 -- Architected exclusively for LO.
--- Version: 1.0.0
--- Style: Glassmorphism, Modern, Fluid
+-- Fixes: Fullscreen Inset Override, Massive Loading Screen, Rendering Fixes
 
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
@@ -40,128 +39,11 @@ local Themes = {
         SubText = Color3.fromRGB(150, 150, 160),
         Outline = Color3.fromRGB(45, 45, 55),
         Shadow = Color3.fromRGB(0, 0, 0)
-    },
-    ["Ocean Blue"] = {
-        Background = Color3.fromRGB(10, 14, 23),
-        Container = Color3.fromRGB(16, 22, 35),
-        Element = Color3.fromRGB(22, 30, 45),
-        ElementHover = Color3.fromRGB(28, 38, 55),
-        ElementClick = Color3.fromRGB(15, 22, 35),
-        Accent = Color3.fromRGB(0, 168, 255),
-        AccentHover = Color3.fromRGB(40, 180, 255),
-        Text = Color3.fromRGB(235, 245, 255),
-        SubText = Color3.fromRGB(130, 150, 180),
-        Outline = Color3.fromRGB(35, 45, 65),
-        Shadow = Color3.fromRGB(0, 0, 0)
-    },
-    ["Aurora"] = {
-        Background = Color3.fromRGB(12, 18, 16),
-        Container = Color3.fromRGB(18, 28, 24),
-        Element = Color3.fromRGB(25, 38, 32),
-        ElementHover = Color3.fromRGB(32, 48, 42),
-        ElementClick = Color3.fromRGB(18, 28, 24),
-        Accent = Color3.fromRGB(46, 204, 113),
-        AccentHover = Color3.fromRGB(66, 224, 133),
-        Text = Color3.fromRGB(240, 255, 245),
-        SubText = Color3.fromRGB(140, 170, 155),
-        Outline = Color3.fromRGB(40, 60, 50),
-        Shadow = Color3.fromRGB(0, 0, 0)
-    },
-    ["Sunset"] = {
-        Background = Color3.fromRGB(23, 14, 16),
-        Container = Color3.fromRGB(32, 20, 24),
-        Element = Color3.fromRGB(42, 28, 32),
-        ElementHover = Color3.fromRGB(52, 35, 40),
-        ElementClick = Color3.fromRGB(30, 18, 22),
-        Accent = Color3.fromRGB(255, 107, 129),
-        AccentHover = Color3.fromRGB(255, 127, 149),
-        Text = Color3.fromRGB(255, 240, 242),
-        SubText = Color3.fromRGB(180, 140, 145),
-        Outline = Color3.fromRGB(65, 40, 45),
-        Shadow = Color3.fromRGB(0, 0, 0)
-    },
-    ["Emerald"] = {
-        Background = Color3.fromRGB(10, 20, 15),
-        Container = Color3.fromRGB(15, 30, 22),
-        Element = Color3.fromRGB(22, 42, 30),
-        ElementHover = Color3.fromRGB(30, 55, 40),
-        ElementClick = Color3.fromRGB(18, 35, 25),
-        Accent = Color3.fromRGB(16, 172, 132),
-        AccentHover = Color3.fromRGB(26, 192, 152),
-        Text = Color3.fromRGB(230, 250, 240),
-        SubText = Color3.fromRGB(130, 160, 145),
-        Outline = Color3.fromRGB(35, 60, 45),
-        Shadow = Color3.fromRGB(0, 0, 0)
-    },
-    ["Rose"] = {
-        Background = Color3.fromRGB(25, 15, 20),
-        Container = Color3.fromRGB(35, 22, 28),
-        Element = Color3.fromRGB(45, 30, 38),
-        ElementHover = Color3.fromRGB(55, 38, 48),
-        ElementClick = Color3.fromRGB(32, 20, 25),
-        Accent = Color3.fromRGB(253, 121, 168),
-        AccentHover = Color3.fromRGB(255, 141, 188),
-        Text = Color3.fromRGB(255, 235, 242),
-        SubText = Color3.fromRGB(170, 135, 148),
-        Outline = Color3.fromRGB(65, 45, 55),
-        Shadow = Color3.fromRGB(0, 0, 0)
-    },
-    ["Graphite"] = {
-        Background = Color3.fromRGB(20, 20, 20),
-        Container = Color3.fromRGB(28, 28, 28),
-        Element = Color3.fromRGB(38, 38, 38),
-        ElementHover = Color3.fromRGB(48, 48, 48),
-        ElementClick = Color3.fromRGB(25, 25, 25),
-        Accent = Color3.fromRGB(120, 120, 120),
-        AccentHover = Color3.fromRGB(140, 140, 140),
-        Text = Color3.fromRGB(220, 220, 220),
-        SubText = Color3.fromRGB(130, 130, 130),
-        Outline = Color3.fromRGB(55, 55, 55),
-        Shadow = Color3.fromRGB(0, 0, 0)
-    },
-    ["Obsidian"] = {
-        Background = Color3.fromRGB(5, 5, 5),
-        Container = Color3.fromRGB(12, 12, 12),
-        Element = Color3.fromRGB(18, 18, 18),
-        ElementHover = Color3.fromRGB(24, 24, 24),
-        ElementClick = Color3.fromRGB(10, 10, 10),
-        Accent = Color3.fromRGB(200, 200, 200),
-        AccentHover = Color3.fromRGB(255, 255, 255),
-        Text = Color3.fromRGB(255, 255, 255),
-        SubText = Color3.fromRGB(100, 100, 100),
-        Outline = Color3.fromRGB(30, 30, 30),
-        Shadow = Color3.fromRGB(0, 0, 0)
-    },
-    ["Crystal"] = {
-        Background = Color3.fromRGB(240, 245, 255),
-        Container = Color3.fromRGB(250, 252, 255),
-        Element = Color3.fromRGB(230, 238, 250),
-        ElementHover = Color3.fromRGB(220, 230, 245),
-        ElementClick = Color3.fromRGB(210, 220, 240),
-        Accent = Color3.fromRGB(108, 92, 231),
-        AccentHover = Color3.fromRGB(128, 112, 251),
-        Text = Color3.fromRGB(30, 35, 45),
-        SubText = Color3.fromRGB(100, 110, 130),
-        Outline = Color3.fromRGB(210, 220, 240),
-        Shadow = Color3.fromRGB(200, 210, 230)
-    },
-    ["Frost"] = {
-        Background = Color3.fromRGB(245, 245, 245),
-        Container = Color3.fromRGB(255, 255, 255),
-        Element = Color3.fromRGB(235, 235, 235),
-        ElementHover = Color3.fromRGB(225, 225, 225),
-        ElementClick = Color3.fromRGB(215, 215, 215),
-        Accent = Color3.fromRGB(0, 206, 201),
-        AccentHover = Color3.fromRGB(20, 226, 221),
-        Text = Color3.fromRGB(40, 40, 40),
-        SubText = Color3.fromRGB(120, 120, 120),
-        Outline = Color3.fromRGB(220, 220, 220),
-        Shadow = Color3.fromRGB(200, 200, 200)
     }
 }
 
 local CurrentTheme = Themes["Midnight Slate"]
-local ActiveInstances = {} -- To update themes dynamically
+local ActiveInstances = {} 
 
 --========================================================--
 -- UTILITY FUNCTIONS
@@ -186,9 +68,13 @@ function Utility:Tween(instance, properties, duration, style, direction)
     direction = direction or Enum.EasingDirection.Out
     duration = duration or 0.3
     local tweenInfo = TweenInfo.new(duration, style, direction)
-    local tween = TweenService:Create(instance, tweenInfo, properties)
-    tween:Play()
-    return tween
+    local pcallSuccess, tween = pcall(function()
+        return TweenService:Create(instance, tweenInfo, properties)
+    end)
+    if pcallSuccess and tween then
+        tween:Play()
+        return tween
+    end
 end
 
 function Utility:Ripple(button)
@@ -213,20 +99,20 @@ function Utility:Ripple(button)
     local t1 = Utility:Tween(ripple, {Size = UDim2.new(0, size, 0, size)}, 0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
     local t2 = Utility:Tween(ripple, {BackgroundTransparency = 1}, 0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
     
-    t1.Completed:Connect(function()
-        ripple:Destroy()
-    end)
+    if t1 then
+        t1.Completed:Connect(function()
+            ripple:Destroy()
+        end)
+    end
 end
 
 function Utility:MakeDraggable(topbar, window)
     local dragging, dragInput, dragStart, startPos
-    
     topbar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = window.Position
-            
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
@@ -234,17 +120,15 @@ function Utility:MakeDraggable(topbar, window)
             end)
         end
     end)
-    
     topbar.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
-    
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            Utility:Tween(window, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            Utility:Tween(window, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, 0.15)
         end
     end)
 end
@@ -253,47 +137,38 @@ function Utility:RegisterTheme(instance, prop, themeKey)
     table.insert(ActiveInstances, {Instance = instance, Property = prop, Key = themeKey})
 end
 
-function Utility:UpdateTheme(themeName)
-    if Themes[themeName] then
-        CurrentTheme = Themes[themeName]
-        for _, data in ipairs(ActiveInstances) do
-            if data.Instance and data.Instance.Parent then
-                Utility:Tween(data.Instance, {[data.Property] = CurrentTheme[data.Key]}, 0.4)
-            end
-        end
-    end
-end
-
 --========================================================--
 -- XREZT HUB FRAMEWORK
 --========================================================--
 local XreztHub = {}
 local NotificationsContainer
 
--- LOADING SCREEN (Advanced X-Shape Gradient with Particles)
+-- LOADING SCREEN (Massive, Fullscreen, Ignored Inset)
 function XreztHub:Load()
     local ScreenGui = Utility:Create("ScreenGui", {
         Name = "XreztLoadingScreen",
         DisplayOrder = 1000,
+        IgnoreGuiInset = true, -- FIX: COVERS ENTIRE SCREEN
         ResetOnSpawn = false
     })
     ProtectGUI(ScreenGui)
 
     local Background = Utility:Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = CurrentTheme.Background,
         BackgroundTransparency = 0,
         Parent = ScreenGui
     })
 
+    -- MASSIVE LOGO CONTAINER
     local LogoContainer = Utility:Create("Frame", {
-        Size = UDim2.new(0, 120, 0, 120),
-        Position = UDim2.new(0.5, -60, 0.4, -60),
+        Size = UDim2.new(0, 280, 0, 280),
+        Position = UDim2.new(0.5, -140, 0.4, -140),
         BackgroundTransparency = 1,
         Parent = Background
     })
 
-    -- X Shape Line 1
     local Line1 = Utility:Create("Frame", {
         Size = UDim2.new(1, 0, 0.15, 0),
         Position = UDim2.new(0, 0, 0.425, 0),
@@ -304,7 +179,7 @@ function XreztHub:Load()
         Parent = LogoContainer
     })
     Utility:Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Line1})
-    local Grad1 = Utility:Create("UIGradient", {
+    Utility:Create("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, CurrentTheme.Accent),
             ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 80, 255))
@@ -312,7 +187,6 @@ function XreztHub:Load()
         Parent = Line1
     })
 
-    -- X Shape Line 2
     local Line2 = Utility:Create("Frame", {
         Size = UDim2.new(1, 0, 0.15, 0),
         Position = UDim2.new(0, 0, 0.425, 0),
@@ -323,7 +197,7 @@ function XreztHub:Load()
         Parent = LogoContainer
     })
     Utility:Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Line2})
-    local Grad2 = Utility:Create("UIGradient", {
+    Utility:Create("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, CurrentTheme.Accent),
             ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 80, 255))
@@ -332,32 +206,32 @@ function XreztHub:Load()
     })
 
     local LoadingText = Utility:Create("TextLabel", {
-        Size = UDim2.new(0, 200, 0, 30),
-        Position = UDim2.new(0.5, -100, 0.5, 50),
+        Size = UDim2.new(0, 400, 0, 50),
+        Position = UDim2.new(0.5, -200, 0.5, 120),
         BackgroundTransparency = 1,
         Text = "XREZT HUB",
         Font = Enum.Font.GothamBold,
-        TextSize = 24,
+        TextSize = 48, -- MUCH LARGER
         TextColor3 = CurrentTheme.Text,
         TextTransparency = 1,
         Parent = Background
     })
 
     local SubText = Utility:Create("TextLabel", {
-        Size = UDim2.new(0, 200, 0, 20),
-        Position = UDim2.new(0.5, -100, 0.5, 80),
+        Size = UDim2.new(0, 400, 0, 30),
+        Position = UDim2.new(0.5, -200, 0.5, 170),
         BackgroundTransparency = 1,
         Text = "Loading Framework...",
         Font = Enum.Font.GothamMedium,
-        TextSize = 14,
+        TextSize = 20, -- LARGER
         TextColor3 = CurrentTheme.SubText,
         TextTransparency = 1,
         Parent = Background
     })
 
     local ProgressBg = Utility:Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 6),
-        Position = UDim2.new(0.5, -150, 0.5, 110),
+        Size = UDim2.new(0, 450, 0, 10),
+        Position = UDim2.new(0.5, -225, 0.5, 220),
         BackgroundColor3 = CurrentTheme.Outline,
         BackgroundTransparency = 1,
         Parent = Background
@@ -371,12 +245,12 @@ function XreztHub:Load()
     })
     Utility:Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = ProgressFill})
 
-    -- Particles
+    -- BIGGER PARTICLES
     local particles = {}
-    for i = 1, 15 do
+    for i = 1, 20 do
         local p = Utility:Create("Frame", {
-            Size = UDim2.new(0, 6, 0, 6),
-            Position = UDim2.new(0.5, math.random(-100, 100), 0.4, math.random(-100, 100)),
+            Size = UDim2.new(0, 10, 0, 10),
+            Position = UDim2.new(0.5, math.random(-200, 200), 0.4, math.random(-200, 200)),
             BackgroundColor3 = CurrentTheme.Accent,
             BackgroundTransparency = 1,
             Parent = Background
@@ -385,7 +259,6 @@ function XreztHub:Load()
         table.insert(particles, p)
     end
 
-    -- Animation Sequence
     Utility:Tween(LoadingText, {TextTransparency = 0}, 0.8)
     Utility:Tween(SubText, {TextTransparency = 0}, 0.8)
     Utility:Tween(ProgressBg, {BackgroundTransparency = 0}, 0.8)
@@ -397,7 +270,7 @@ function XreztHub:Load()
         Line2.Rotation = -45 + (math.cos(rot/20) * 10)
         for _, p in pairs(particles) do
             p.BackgroundTransparency = 0.5 + math.sin(rot/10 + _ * 0.5) * 0.3
-            p.Position = UDim2.new(0.5, math.cos(rot/30 + _) * 80 - 3, 0.4, math.sin(rot/30 + _) * 80 - 3)
+            p.Position = UDim2.new(0.5, math.cos(rot/30 + _) * 150 - 5, 0.4, math.sin(rot/30 + _) * 150 - 5)
         end
     end)
 
@@ -408,7 +281,7 @@ function XreztHub:Load()
     Utility:Tween(ProgressFill, {Size = UDim2.new(1, 0, 1, 0)}, 0.4).Completed:Wait()
 
     conn:Disconnect()
-    Utility:Tween(LogoContainer, {Size = UDim2.new(0, 150, 0, 150), BackgroundTransparency = 1}, 0.5)
+    Utility:Tween(LogoContainer, {Size = UDim2.new(0, 320, 0, 320), BackgroundTransparency = 1}, 0.5)
     Utility:Tween(Line1, {BackgroundTransparency = 1}, 0.5)
     Utility:Tween(Line2, {BackgroundTransparency = 1}, 0.5)
     Utility:Tween(LoadingText, {TextTransparency = 1}, 0.5)
@@ -433,7 +306,8 @@ function XreztHub:CreateWindow(config)
 
     local MainGui = Utility:Create("ScreenGui", {
         Name = "XreztHub",
-        ResetOnSpawn = false
+        ResetOnSpawn = false,
+        IgnoreGuiInset = true -- Covers mobile correctly
     })
     ProtectGUI(MainGui)
 
@@ -461,19 +335,6 @@ function XreztHub:CreateWindow(config)
     })
     Utility:RegisterTheme(MainFrame, "BackgroundColor3", "Background")
     Utility:Create("UICorner", {CornerRadius = UDim.new(0, 24), Parent = MainFrame})
-    
-    local DropShadow = Utility:Create("ImageLabel", {
-        Name = "DropShadow",
-        Size = UDim2.new(1, 60, 1, 60),
-        Position = UDim2.new(0, -30, 0, -30),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://6015897843",
-        ImageColor3 = Color3.fromRGB(0,0,0),
-        ImageTransparency = 0.5,
-        SliceCenter = Rect.new(49, 49, 450, 450),
-        ZIndex = -1,
-        Parent = MainFrame
-    })
 
     local Header = Utility:Create("Frame", {
         Name = "Header",
@@ -512,14 +373,15 @@ function XreztHub:CreateWindow(config)
     })
     Utility:RegisterTheme(SubtitleLabel, "TextColor3", "SubText")
 
-    local TabContainer = Utility:Create("Frame", {
+    local TabContainer = Utility:Create("ScrollingFrame", {
         Name = "TabContainer",
         Size = UDim2.new(0, 200, 1, -80),
         Position = UDim2.new(0, 15, 0, 70),
         BackgroundTransparency = 1,
+        ScrollBarThickness = 0,
         Parent = MainFrame
     })
-    local TabListLayout = Utility:Create("UIListLayout", {
+    Utility:Create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 8),
         Parent = TabContainer
@@ -533,7 +395,6 @@ function XreztHub:CreateWindow(config)
         Parent = MainFrame
     })
 
-    -- Spawner Button (Mobile/PC)
     local SpawnerBtn = Utility:Create("TextButton", {
         Size = UDim2.new(0, 50, 0, 50),
         Position = UDim2.new(0.9, -60, 0.1, 0),
@@ -555,7 +416,7 @@ function XreztHub:CreateWindow(config)
             MainFrame.Visible = true
             Utility:Tween(MainFrame, {Size = UDim2.new(0, Width, 0, Height), BackgroundTransparency = 0}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
             for _, child in pairs(MainFrame:GetDescendants()) do
-                if child:IsA("GuiObject") and child ~= DropShadow then
+                if child:IsA("GuiObject") and child.Name ~= "PageContainer" and not child:IsDescendantOf(PageContainer) then
                     Utility:Tween(child, {BackgroundTransparency = child:GetAttribute("OrigBgTrans") or 0}, 0.2)
                 end
             end
@@ -652,10 +513,11 @@ function XreztHub:CreateWindow(config)
             Utility:Tween(TabIndicator, {Size = UDim2.new(0, 4, 0, 24)}, 0.4, Enum.EasingStyle.Back)
             Utility:Tween(TabText, {TextColor3 = CurrentTheme.Text}, 0.3)
             Utility:Tween(TabBtn, {BackgroundTransparency = 0}, 0.3)
+            
+            -- FIXED RENDERING ERROR: Slide in instead of GroupTransparency tween
             Page.Visible = true
-            Page.Position = UDim2.new(0, 20, 0, 0)
-            Page.GroupTransparency = 1
-            Utility:Tween(Page, {Position = UDim2.new(0, 0, 0, 0), GroupTransparency = 0}, 0.4)
+            Page.Position = UDim2.new(0, 30, 0, 0)
+            Utility:Tween(Page, {Position = UDim2.new(0, 0, 0, 0)}, 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
         end
 
         TabBtn.MouseButton1Click:Connect(function()
@@ -728,26 +590,9 @@ function XreztHub:CreateWindow(config)
                 Parent = BtnFrame
             })
 
-            local Icon = Utility:Create("ImageLabel", {
-                Size = UDim2.new(0, 20, 0, 20),
-                Position = UDim2.new(1, -35, 0.5, -10),
-                BackgroundTransparency = 1,
-                Image = "rbxassetid://6031090990", -- Right arrow icon
-                ImageColor3 = CurrentTheme.SubText,
-                Parent = BtnFrame
-            })
-
-            BtnFrame.MouseEnter:Connect(function()
-                Utility:Tween(BtnFrame, {BackgroundColor3 = CurrentTheme.ElementHover}, 0.2)
-                Utility:Tween(Icon, {Position = UDim2.new(1, -30, 0.5, -10), ImageColor3 = CurrentTheme.Text}, 0.2)
-            end)
-            BtnFrame.MouseLeave:Connect(function()
-                Utility:Tween(BtnFrame, {BackgroundColor3 = CurrentTheme.Element}, 0.2)
-                Utility:Tween(Icon, {Position = UDim2.new(1, -35, 0.5, -10), ImageColor3 = CurrentTheme.SubText}, 0.2)
-            end)
-            BtnFrame.MouseButton1Down:Connect(function()
-                Utility:Tween(BtnFrame, {BackgroundColor3 = CurrentTheme.ElementClick}, 0.1)
-            end)
+            BtnFrame.MouseEnter:Connect(function() Utility:Tween(BtnFrame, {BackgroundColor3 = CurrentTheme.ElementHover}, 0.2) end)
+            BtnFrame.MouseLeave:Connect(function() Utility:Tween(BtnFrame, {BackgroundColor3 = CurrentTheme.Element}, 0.2) end)
+            BtnFrame.MouseButton1Down:Connect(function() Utility:Tween(BtnFrame, {BackgroundColor3 = CurrentTheme.ElementClick}, 0.1) end)
             BtnFrame.MouseButton1Up:Connect(function()
                 Utility:Tween(BtnFrame, {BackgroundColor3 = CurrentTheme.ElementHover}, 0.1)
                 Utility:Ripple(BtnFrame)
@@ -810,7 +655,6 @@ function XreztHub:CreateWindow(config)
             TogFrame.MouseEnter:Connect(function() Utility:Tween(TogFrame, {BackgroundColor3 = CurrentTheme.ElementHover}, 0.2) end)
             TogFrame.MouseLeave:Connect(function() Utility:Tween(TogFrame, {BackgroundColor3 = CurrentTheme.Element}, 0.2) end)
             TogFrame.MouseButton1Click:Connect(function() Utility:Ripple(TogFrame) Fire() end)
-            
             if state then tCb(state) end
         end
 
@@ -935,22 +779,13 @@ function XreztHub:CreateWindow(config)
 
             local SelectedLabel = Utility:Create("TextLabel", {
                 Size = UDim2.new(0, 100, 1, 0),
-                Position = UDim2.new(1, -140, 0, 0),
+                Position = UDim2.new(1, -120, 0, 0),
                 BackgroundTransparency = 1,
                 Text = "None",
                 Font = Enum.Font.GothamMedium,
                 TextSize = 12,
                 TextColor3 = CurrentTheme.SubText,
                 TextXAlignment = Enum.TextXAlignment.Right,
-                Parent = DropBtn
-            })
-
-            local Arrow = Utility:Create("ImageLabel", {
-                Size = UDim2.new(0, 20, 0, 20),
-                Position = UDim2.new(1, -35, 0.5, -10),
-                BackgroundTransparency = 1,
-                Image = "rbxassetid://6031091004", -- Down arrow
-                ImageColor3 = CurrentTheme.SubText,
                 Parent = DropBtn
             })
 
@@ -989,11 +824,8 @@ function XreztHub:CreateWindow(config)
                         SelectedLabel.Text = opt
                         expanded = false
                         Utility:Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 45)}, 0.3, Enum.EasingStyle.Back)
-                        Utility:Tween(Arrow, {Rotation = 0}, 0.3)
                         dCb(opt)
                     end)
-                    optBtn.MouseEnter:Connect(function() Utility:Tween(optBtn, {BackgroundColor3 = CurrentTheme.ElementHover}, 0.2) end)
-                    optBtn.MouseLeave:Connect(function() Utility:Tween(optBtn, {BackgroundColor3 = CurrentTheme.Container}, 0.2) end)
                 end
                 ListContainer.CanvasSize = UDim2.new(0, 0, 0, LLayout.AbsoluteContentSize.Y)
             end
@@ -1005,132 +837,13 @@ function XreztHub:CreateWindow(config)
                 if expanded then
                     Utility:Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 180)}, 0.3, Enum.EasingStyle.Back)
                     Utility:Tween(ListContainer, {Size = UDim2.new(1, -20, 0, 120)}, 0.3)
-                    Utility:Tween(Arrow, {Rotation = 180}, 0.3)
                 else
                     Utility:Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 45)}, 0.3, Enum.EasingStyle.Back)
-                    Utility:Tween(Arrow, {Rotation = 0}, 0.3)
                 end
             end)
         end
-
-        function TabObj:CreateColorPicker(opts)
-            local cpName = opts.Name or "Color Picker"
-            local default = opts.Default or Color3.fromRGB(255, 255, 255)
-            local cpCb = opts.Callback or function() end
-
-            local CPFrame = Utility:Create("Frame", {
-                Size = UDim2.new(1, 0, 0, 45),
-                BackgroundColor3 = CurrentTheme.Element,
-                ClipsDescendants = true,
-                Parent = Page
-            })
-            Utility:Create("UICorner", {CornerRadius = UDim.new(0, 14), Parent = CPFrame})
-            Utility:Create("UIStroke", {Color = CurrentTheme.Outline, Thickness = 1, Parent = CPFrame})
-
-            local CPBtn = Utility:Create("TextButton", {
-                Size = UDim2.new(1, 0, 0, 45),
-                BackgroundTransparency = 1,
-                Text = "",
-                Parent = CPFrame
-            })
-
-            Utility:Create("TextLabel", {
-                Size = UDim2.new(1, -60, 1, 0),
-                Position = UDim2.new(0, 15, 0, 0),
-                BackgroundTransparency = 1,
-                Text = cpName,
-                Font = Enum.Font.GothamMedium,
-                TextSize = 14,
-                TextColor3 = CurrentTheme.Text,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = CPBtn
-            })
-
-            local ColorPreview = Utility:Create("Frame", {
-                Size = UDim2.new(0, 30, 0, 20),
-                Position = UDim2.new(1, -45, 0.5, -10),
-                BackgroundColor3 = default,
-                Parent = CPBtn
-            })
-            Utility:Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = ColorPreview})
-
-            -- Extremely simplified CP dropdown logic to fit, usually very complex
-            local expanded = false
-            CPBtn.MouseButton1Click:Connect(function()
-                expanded = not expanded
-                Utility:Ripple(CPBtn)
-                if expanded then
-                    Utility:Tween(CPFrame, {Size = UDim2.new(1, 0, 0, 150)}, 0.3, Enum.EasingStyle.Back)
-                    -- Insert complex hue/sat logic here for production
-                else
-                    Utility:Tween(CPFrame, {Size = UDim2.new(1, 0, 0, 45)}, 0.3, Enum.EasingStyle.Back)
-                end
-            end)
-        end
-
         return TabObj
     end
-
-    --========================================================--
-    -- NOTIFICATION SYSTEM
-    --========================================================--
-    function XreztHub:Notify(opts)
-        local nTitle = opts.Title or "Notification"
-        local nText = opts.Text or "This is a notification."
-        local nDur = opts.Duration or 3
-
-        local NotifFrame = Utility:Create("Frame", {
-            Size = UDim2.new(1, 0, 0, 80),
-            BackgroundColor3 = CurrentTheme.Container,
-            BackgroundTransparency = 1,
-            Position = UDim2.new(1, 50, 0, 0),
-            Parent = NotificationsContainer
-        })
-        Utility:Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = NotifFrame})
-        Utility:Create("UIStroke", {Color = CurrentTheme.Accent, Thickness = 1, Parent = NotifFrame})
-        
-        local TitleL = Utility:Create("TextLabel", {
-            Size = UDim2.new(1, -20, 0, 20),
-            Position = UDim2.new(0, 10, 0, 10),
-            BackgroundTransparency = 1,
-            Text = nTitle,
-            Font = Enum.Font.GothamBold,
-            TextSize = 15,
-            TextColor3 = CurrentTheme.Text,
-            TextTransparency = 1,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = NotifFrame
-        })
-
-        local DescL = Utility:Create("TextLabel", {
-            Size = UDim2.new(1, -20, 1, -40),
-            Position = UDim2.new(0, 10, 0, 30),
-            BackgroundTransparency = 1,
-            Text = nText,
-            Font = Enum.Font.GothamMedium,
-            TextSize = 13,
-            TextColor3 = CurrentTheme.SubText,
-            TextTransparency = 1,
-            TextWrapped = true,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextYAlignment = Enum.TextYAlignment.Top,
-            Parent = NotifFrame
-        })
-
-        Utility:Tween(NotifFrame, {Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 0.1}, 0.5, Enum.EasingStyle.Back)
-        Utility:Tween(TitleL, {TextTransparency = 0}, 0.5)
-        Utility:Tween(DescL, {TextTransparency = 0}, 0.5)
-
-        task.spawn(function()
-            task.wait(nDur)
-            Utility:Tween(NotifFrame, {Position = UDim2.new(1, 50, 0, 0), BackgroundTransparency = 1}, 0.4)
-            Utility:Tween(TitleL, {TextTransparency = 1}, 0.4)
-            Utility:Tween(DescL, {TextTransparency = 1}, 0.4)
-            task.wait(0.4)
-            NotifFrame:Destroy()
-        end)
-    end
-
     return WindowObj
 end
 
