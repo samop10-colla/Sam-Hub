@@ -1,11 +1,6 @@
 --[[
     ================================================================================
-    XREZT HUB UI FRAMEWORK
-    ================================================================================
-    Version: 1.0.0
-    Type: Production-Grade Reusable UI Library
-    Design Language: Glassmorphic Master Theme (Vibrant Amethyst to Deep Cyan)
-    Engine: Luau (Roblox Studio)
+    XREZT HUB UI FRAMEWORK (FIXED PRODUCTION-READY)
     ================================================================================
 ]]
 
@@ -50,7 +45,6 @@ do
         return tween
     end
 
-    -- Smooth Physical Spring Simulation for realistic UI inertia
     function Utility:CreateSpring(mass, damping, stiffness, initialPosition)
         local spring = {
             Target = initialPosition or 0,
@@ -75,7 +69,6 @@ do
         return spring
     end
 
-    -- Universal Draggable System (Touch, Mouse, Controller Compatible)
     function Utility:MakeDraggable(frame, dragHandle)
         local dragging = false
         local dragInput, dragStart, startPos
@@ -107,7 +100,6 @@ do
                 local targetX = startPos.X.Offset + delta.X
                 local targetY = startPos.Y.Offset + delta.Y
                 
-                -- Smooth Spring Dragging Offset
                 Utility:Tween(frame, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {
                     Position = UDim2.new(
                         startPos.X.Scale,
@@ -127,8 +119,8 @@ local MasterTheme = {
     Surface = Color3.fromRGB(24, 24, 37),
     Interactive = Color3.fromRGB(36, 36, 54),
     InteractiveHover = Color3.fromRGB(48, 48, 72),
-    GradientStart = Color3.fromRGB(124, 58, 237), -- Electric Orchid Violet
-    GradientEnd = Color3.fromRGB(6, 182, 212),    -- Deep Cyan Blue
+    GradientStart = Color3.fromRGB(124, 58, 237),
+    GradientEnd = Color3.fromRGB(6, 182, 212),
     TextMain = Color3.fromRGB(243, 244, 246),
     TextMuted = Color3.fromRGB(156, 163, 175),
     Accent = Color3.fromRGB(139, 92, 246),
@@ -306,14 +298,12 @@ function Library:Dialog(title, description, buttons)
         end)
     end
 
-    -- Intro Animation
     dialogFrame.Size = UDim2.new(0, 420, 0, 180)
     Utility:Tween(blurOverlay, TweenInfo.new(0.3, Enum.EasingStyle.OutQuad), { BackgroundTransparency = 0.55 })
     Utility:Tween(dialogFrame, TweenInfo.new(0.4, Enum.EasingStyle.OutBack), { Size = UDim2.new(0, 420, 0, 220) })
 
     connectionSignal.Event:Wait()
 
-    -- Outro Animation
     Utility:Tween(dialogFrame, TweenInfo.new(0.2, Enum.EasingStyle.InQuad), { Size = UDim2.new(0, 420, 0, 180) })
     Utility:Tween(blurOverlay, TweenInfo.new(0.25, Enum.EasingStyle.InQuad), { BackgroundTransparency = 1 }, function()
         blurOverlay:Destroy()
@@ -403,7 +393,6 @@ function Library:Notify(title, message, iconType, duration)
         })
     })
 
-    -- Entry Animation
     item.Position = UDim2.new(1, 340, 0, 0)
     Utility:Tween(item, TweenInfo.new(0.45, Enum.EasingStyle.OutBack), { Position = UDim2.new(0, 0, 0, 0) })
 
@@ -414,7 +403,7 @@ function Library:Notify(title, message, iconType, duration)
     end)
 end
 
--- IN-GAME FLOATING TOGGLE BUTTON
+-- FLOATING TOGGLE BUTTON
 function Library:CreateFloatingButton()
     if self.FloatingButton then return end
 
@@ -424,7 +413,7 @@ function Library:CreateFloatingButton()
         Position = UDim2.new(0.05, 0, 0.15, 0),
         BackgroundColor3 = MasterTheme.Background,
         BackgroundTransparency = 0.1,
-        Image = "rbxassetid://10747372703", -- Standard elegant gear/settings glyph
+        Image = "rbxassetid://10747372703",
         ImageColor3 = MasterTheme.TextMain,
         ScaleType = Enum.ScaleType.Fit,
         ZIndex = 10000,
@@ -452,7 +441,6 @@ function Library:CreateFloatingButton()
 
     Utility:MakeDraggable(btn, nil)
 
-    -- Click Mechanics
     btn.MouseButton1Down:Connect(function()
         Utility:Tween(btn, TweenInfo.new(0.15, Enum.EasingStyle.OutQuad), {
             Size = UDim2.new(0, 46, 0, 46)
@@ -507,7 +495,8 @@ end
 
 -- SYSTEM INITIALIZATION & LOADING SCREEN
 function Library:Init()
-    -- Create ScreenGui
+    if self.ScreenGui then return end
+
     self.ScreenGui = Utility:Create("ScreenGui", {
         Name = "XreztHub_Engine",
         ResetOnSpawn = false,
@@ -515,7 +504,6 @@ function Library:Init()
         Parent = ScreenTarget
     })
 
-    -- Render Loading Sequence
     local introContainer = Utility:Create("Frame", {
         Name = "IntroContainer",
         Size = UDim2.new(1, 0, 1, 0),
@@ -600,7 +588,6 @@ function Library:Init()
         })
     })
 
-    -- Spin the Ring
     task.spawn(function()
         local r = 0
         while introContainer.Parent do
@@ -610,30 +597,31 @@ function Library:Init()
         end
     end)
 
-    -- Fake Progress Loading Bar Sequence
-    local steps = {
-        {0.25, "CONFIGURING SYSTEM MODULES..."},
-        {0.55, "PACKAGING ENGINE PHYSICS..."},
-        {0.80, "COMPILING MASTER STYLES..."},
-        {1.00, "XREZT HUB READY"}
-    }
+    -- ASYNCHRONOUS PROGRESS ANIMATION
+    task.spawn(function()
+        local steps = {
+            {0.25, "CONFIGURING SYSTEM MODULES..."},
+            {0.55, "PACKAGING ENGINE PHYSICS..."},
+            {0.80, "COMPILING MASTER STYLES..."},
+            {1.00, "XREZT HUB READY"}
+        }
 
-    for _, step in ipairs(steps) do
+        for _, step in ipairs(steps) do
+            task.wait(0.3)
+            Utility:Tween(progressBarFill, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad), { Size = UDim2.new(step[1], 0, 1, 0) })
+            loadLabel.Text = step[2]
+        end
+
+        task.wait(0.3)
+
+        Utility:Tween(introCircle, TweenInfo.new(0.4, Enum.EasingStyle.InBack), { Size = UDim2.new(0, 0, 0, 0) })
+        Utility:Tween(loadLabel, TweenInfo.new(0.35, Enum.EasingStyle.InQuad), { TextTransparency = 1 })
+        Utility:Tween(progressBarBg, TweenInfo.new(0.35, Enum.EasingStyle.InQuad), { BackgroundTransparency = 1 })
+        Utility:Tween(progressBarFill, TweenInfo.new(0.35, Enum.EasingStyle.InQuad), { BackgroundTransparency = 1 })
         task.wait(0.35)
-        Utility:Tween(progressBarFill, TweenInfo.new(0.4, Enum.EasingStyle.OutQuad), { Size = UDim2.new(step[1], 0, 1, 0) })
-        loadLabel.Text = step[2]
-    end
-
-    task.wait(0.3)
-
-    -- Dynamic Transition Out
-    Utility:Tween(introCircle, TweenInfo.new(0.4, Enum.EasingStyle.InBack), { Size = UDim2.new(0, 0, 0, 0) })
-    Utility:Tween(loadLabel, TweenInfo.new(0.35, Enum.EasingStyle.InQuad), { TextTransparency = 1 })
-    Utility:Tween(progressBarBg, TweenInfo.new(0.35, Enum.EasingStyle.InQuad), { BackgroundTransparency = 1 })
-    Utility:Tween(progressBarFill, TweenInfo.new(0.35, Enum.EasingStyle.InQuad), { BackgroundTransparency = 1 })
-    task.wait(0.35)
-    Utility:Tween(introContainer, TweenInfo.new(0.5, Enum.EasingStyle.QuadIn), { BackgroundTransparency = 1 }, function()
-        introContainer:Destroy()
+        Utility:Tween(introContainer, TweenInfo.new(0.5, Enum.EasingStyle.QuadIn), { BackgroundTransparency = 1 }, function()
+            introContainer:Destroy()
+        end)
     end)
 
     ConfigSystem:Load()
@@ -645,6 +633,11 @@ local Window = {}
 Window.__index = Window
 
 function Library:CreateWindow(config)
+    -- AUTO INITIALIZE IF NEEDED
+    if not self.ScreenGui then
+        self:Init()
+    end
+
     config = config or {}
     local windowTitle = config.Title or "Xrezt Hub"
     local windowSize = config.Size or Vector2.new(650, 420)
@@ -667,7 +660,7 @@ function Library:CreateWindow(config)
         BackgroundColor3 = MasterTheme.Background,
         BackgroundTransparency = 0.05,
         ClipsDescendants = true,
-        Parent = Library.ScreenGui
+        Parent = self.ScreenGui
     }, {
         Utility:Create("UICorner", { CornerRadius = UDim.new(0, 14) }),
         Utility:Create("UIStroke", {
@@ -677,7 +670,6 @@ function Library:CreateWindow(config)
         })
     })
 
-    -- Drag Handle Top Bar
     local topBar = Utility:Create("Frame", {
         Name = "TopBar",
         Size = UDim2.new(1, 0, 0, 50),
@@ -699,7 +691,6 @@ function Library:CreateWindow(config)
         })
     })
 
-    -- Top bar action button wrappers (Close, Minimize)
     local actionContainer = Utility:Create("Frame", {
         Name = "Actions",
         Size = UDim2.new(0, 80, 1, 0),
@@ -716,7 +707,6 @@ function Library:CreateWindow(config)
         })
     })
 
-    -- Minimize Action
     local minBtn = Utility:Create("TextButton", {
         Name = "Min",
         Size = UDim2.new(0, 16, 0, 16),
@@ -729,7 +719,6 @@ function Library:CreateWindow(config)
         Utility:Create("UICorner", { CornerRadius = UDim.new(1, 0) })
     })
 
-    -- Close Action
     local closeBtn = Utility:Create("TextButton", {
         Name = "Close",
         Size = UDim2.new(0, 16, 0, 16),
@@ -742,7 +731,6 @@ function Library:CreateWindow(config)
         Utility:Create("UICorner", { CornerRadius = UDim.new(1, 0) })
     })
 
-    -- Sidebar / Tab list frame
     local sidebar = Utility:Create("Frame", {
         Name = "Sidebar",
         Size = UDim2.new(0, 170, 1, -50),
@@ -770,7 +758,6 @@ function Library:CreateWindow(config)
         })
     })
 
-    -- Active indicator visual line tracker
     local activeTabLine = Utility:Create("Frame", {
         Name = "ActiveTabLine",
         Size = UDim2.new(0, 4, 0, 32),
@@ -786,7 +773,6 @@ function Library:CreateWindow(config)
         })
     })
 
-    -- Main pages content area
     local pagesArea = Utility:Create("Frame", {
         Name = "PagesArea",
         Size = UDim2.new(1, -170, 1, -50),
@@ -797,12 +783,10 @@ function Library:CreateWindow(config)
 
     Utility:MakeDraggable(mainFrame, topBar)
 
-    -- Functionalities
     closeBtn.MouseButton1Click:Connect(function()
-        Library:Dialog("Shutdown Engine?", "Are you sure you want to terminate Xrezt Hub? All active configs will be saved.", {
+        Library:Dialog("Shutdown Engine?", "Are you sure you want to terminate Xrezt Hub?", {
             { Text = "No", Callback = nil },
             { Text = "Yes", Callback = function()
-                Library:Notify("System", "Deinitializing active core loops...", "Warning", 2)
                 Utility:Tween(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.InBack), {
                     Size = UDim2.new(0, windowSize.X, 0, 0),
                     BackgroundTransparency = 1
@@ -825,7 +809,6 @@ function Library:CreateWindow(config)
     selfInstance.PageContainer = pagesArea
     selfInstance.ActiveTabLine = activeTabLine
 
-    -- Entry Scaling Dynamic Spring Setup
     mainFrame.Size = UDim2.new(0, windowSize.X, 0, 0)
     Utility:Tween(mainFrame, TweenInfo.new(0.55, Enum.EasingStyle.OutElastic, Enum.EasingDirection.Out, 0, false, 0), {
         Size = UDim2.new(0, windowSize.X, 0, windowSize.Y)
@@ -924,7 +907,6 @@ end
 function Window:SelectTab(tabInstance)
     if self.ActiveTab == tabInstance then return end
 
-    -- Hide Previous
     if self.ActiveTab then
         self.ActiveTab.PageFrame.Visible = false
         Utility:Tween(self.ActiveTab.ButtonInst, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {
@@ -936,7 +918,6 @@ function Window:SelectTab(tabInstance)
     self.ActiveTab = tabInstance
     tabInstance.PageFrame.Visible = true
 
-    -- Target Button Position calculations
     local btn = tabInstance.ButtonInst
     self.ActiveTabLine.Visible = true
     self.ActiveTabLine.Parent = btn
@@ -961,7 +942,7 @@ function Tab:CreateSection(title)
 
     local sectionFrame = Utility:Create("Frame", {
         Name = title .. "_Section",
-        Size = UDim2.new(1, 0, 0, 45), -- Expanded dynamically
+        Size = UDim2.new(1, 0, 0, 45),
         BackgroundColor3 = MasterTheme.Surface,
         BackgroundTransparency = 0.6,
         ClipsDescendants = true,
@@ -1010,10 +991,6 @@ function Tab:CreateSection(title)
     return selfInstance
 end
 
--- ==============================================================================
--- COMPONENT CONSTRUCTORS
--- ==============================================================================
-
 -- BUTTON COMPONENT
 function Section:CreateButton(config)
     config = config or {}
@@ -1049,12 +1026,11 @@ function Section:CreateButton(config)
             Size = UDim2.new(0, 18, 0, 18),
             Position = UDim2.new(1, -34, 0.5, -9),
             BackgroundTransparency = 1,
-            Image = "rbxassetid://10747373111", -- Elegant arrow/chevron right
+            Image = "rbxassetid://10747373111",
             ImageColor3 = MasterTheme.TextMuted
         })
     })
 
-    -- Hover State Animation
     btn.MouseEnter:Connect(function()
         Utility:Tween(btn, TweenInfo.new(0.2, Enum.EasingStyle.OutQuad), {
             BackgroundColor3 = MasterTheme.InteractiveHover
@@ -1069,7 +1045,6 @@ function Section:CreateButton(config)
         Utility:Tween(btn:FindFirstChild("UIStroke"), TweenInfo.new(0.2), { Color = MasterTheme.Border })
     end)
 
-    -- Dynamic Press Animation Ripple Feedback
     btn.MouseButton1Down:Connect(function()
         Utility:Tween(btn, TweenInfo.new(0.1, Enum.EasingStyle.OutQuad), {
             Size = UDim2.new(1, -4, 0, 36)
@@ -1123,7 +1098,6 @@ function Section:CreateToggle(config)
             FontFace = MasterTheme.Font,
             TextXAlignment = Enum.TextXAlignment.Left
         }),
-        -- Back switch track
         Utility:Create("Frame", {
             Name = "SwitchTrack",
             Size = UDim2.new(0, 44, 0, 22),
@@ -1133,7 +1107,6 @@ function Section:CreateToggle(config)
         }, {
             Utility:Create("UICorner", { CornerRadius = UDim.new(1, 0) }),
             Utility:Create("UIStroke", { Color = MasterTheme.Border, Thickness = 1 }),
-            -- Switch handle
             Utility:Create("Frame", {
                 Name = "Handle",
                 Size = UDim2.new(0, 16, 0, 16),
@@ -1181,7 +1154,6 @@ function Section:CreateToggle(config)
         })
     end)
 
-    -- Initial load state
     applyState(activeState)
 
     return toggle
@@ -1233,7 +1205,6 @@ function Section:CreateSlider(config)
             FontFace = MasterTheme.FontBold,
             TextXAlignment = Enum.TextXAlignment.Right
         }),
-        -- Slider Bar Frame Background
         Utility:Create("TextButton", {
             Name = "SliderTrack",
             Size = UDim2.new(1, -32, 0, 6),
@@ -1282,8 +1253,6 @@ function Section:CreateSlider(config)
         local positionOffset = inputObj.Position.X - track.AbsolutePosition.X
         local fraction = math.clamp(positionOffset / track.AbsoluteSize.X, 0, 1)
         local calculatedValue = min + fraction * (max - min)
-        
-        -- Lock value to precision increment step
         local finalValue = math.round(calculatedValue / increment) * increment
         val = math.clamp(finalValue, min, max)
         
@@ -1319,7 +1288,7 @@ function Section:CreateSlider(config)
     return sliderFrame
 end
 
--- DROPDOWN COMPONENT (Single / Multi Select + Live Search)
+-- DROPDOWN COMPONENT
 function Section:CreateDropdown(config)
     config = config or {}
     local label = config.Label or "Option Selector"
@@ -1345,7 +1314,6 @@ function Section:CreateDropdown(config)
     }, {
         Utility:Create("UICorner", { CornerRadius = UDim.new(0, 8) }),
         Utility:Create("UIStroke", { Color = MasterTheme.Border, Thickness = 0.8 }),
-        -- Clickable Header Button
         Utility:Create("TextButton", {
             Name = "HeaderButton",
             Size = UDim2.new(1, 0, 0, 44),
@@ -1470,7 +1438,6 @@ function Section:CreateDropdown(config)
 
     local function buildOptionButtons(filterText)
         filterText = filterText and filterText:lower() or ""
-        -- Purge previous dynamic lists safely
         for _, child in ipairs(listScroll:GetChildren()) do
             if child:IsA("TextButton") then
                 child:Destroy()
@@ -1574,7 +1541,6 @@ function Section:CreateCheckbox(config)
             FontFace = MasterTheme.Font,
             TextXAlignment = Enum.TextXAlignment.Left
         }),
-        -- Small check container
         Utility:Create("Frame", {
             Name = "CheckFrame",
             Size = UDim2.new(0, 20, 0, 20),
@@ -1589,7 +1555,7 @@ function Section:CreateCheckbox(config)
                 Size = UDim2.new(0, 12, 0, 12),
                 Position = UDim2.new(0.5, -6, 0.5, -6),
                 BackgroundTransparency = 1,
-                Image = "rbxassetid://10747384356", -- Clean checkmark glyph icon
+                Image = "rbxassetid://10747384356",
                 ImageColor3 = MasterTheme.TextMain,
                 ImageTransparency = activeState and 0 or 1
             })
@@ -1624,7 +1590,7 @@ function Section:CreateCheckbox(config)
     return checkbox
 end
 
--- RADIO BUTTONS GROUP
+-- RADIO GROUP
 function Section:CreateRadio(config)
     config = config or {}
     local label = config.Label or "Option Group"
@@ -1640,7 +1606,7 @@ function Section:CreateRadio(config)
 
     local radioParent = Utility:Create("Frame", {
         Name = label .. "_RadioGroup",
-        Size = UDim2.new(1, 0, 0, 40), -- Will dynamic-scale below
+        Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
         Parent = self.Container
     }, {
@@ -1663,17 +1629,16 @@ function Section:CreateRadio(config)
             ConfigSystem:Save()
         end
 
-        -- Redraw states dynamically
         for _, child in ipairs(radioParent:GetChildren()) do
             if child:IsA("TextButton") then
                 local checkCircle = child:FindFirstChild("CheckCircle")
                 local coreFill = checkCircle:FindFirstChild("CoreFill")
                 
                 if child.Name == optName .. "_RadioItem" then
-                    Utility:Tween(checkCircle, TweenInfo.new(0.2), { Color3 = MasterTheme.Accent })
+                    Utility:Tween(checkCircle:FindFirstChildOfClass("UIStroke"), TweenInfo.new(0.2), { Color = MasterTheme.Accent })
                     Utility:Tween(coreFill, TweenInfo.new(0.2, Enum.EasingStyle.OutBack), { Size = UDim2.new(0, 10, 0, 10) })
                 else
-                    Utility:Tween(checkCircle, TweenInfo.new(0.2), { Color3 = MasterTheme.Border })
+                    Utility:Tween(checkCircle:FindFirstChildOfClass("UIStroke"), TweenInfo.new(0.2), { Color = MasterTheme.Border })
                     Utility:Tween(coreFill, TweenInfo.new(0.15), { Size = UDim2.new(0, 0, 0, 0) })
                 end
             end
@@ -1706,7 +1671,6 @@ function Section:CreateRadio(config)
                 FontFace = MasterTheme.Font,
                 TextXAlignment = Enum.TextXAlignment.Left
             }),
-            -- Double Ring Indicator
             Utility:Create("Frame", {
                 Name = "CheckCircle",
                 Size = UDim2.new(0, 18, 0, 18),
@@ -1772,7 +1736,6 @@ function Section:CreateTextbox(config)
             FontFace = MasterTheme.Font,
             TextXAlignment = Enum.TextXAlignment.Left
         }),
-        -- Focus-Glow Frame wrapper
         Utility:Create("Frame", {
             Name = "InputWrapper",
             Size = UDim2.new(0.6, -16, 0, 32),
@@ -1835,7 +1798,6 @@ function Section:CreateKeybind(config)
 
     local currentBind = default
     if ConfigSystem.Data[flag] ~= nil then
-        -- Handle serialization conversions from Strings dynamically
         local savedString = ConfigSystem.Data[flag]
         for _, val in ipairs(Enum.KeyCode:GetEnumItems()) do
             if val.Name == savedString then
@@ -1866,7 +1828,6 @@ function Section:CreateKeybind(config)
             FontFace = MasterTheme.Font,
             TextXAlignment = Enum.TextXAlignment.Left
         }),
-        -- Display trigger action block
         Utility:Create("TextButton", {
             Name = "BindButton",
             Size = UDim2.new(0, 80, 0, 26),
@@ -1908,7 +1869,6 @@ function Section:CreateKeybind(config)
                 end
             end
         else
-            -- Check normal fires matching bind
             if input.KeyCode == currentBind then
                 pcall(callback)
             end
@@ -1918,7 +1878,7 @@ function Section:CreateKeybind(config)
     return keybindFrame
 end
 
--- COLOR PICKER COMPONENT (Fully Realized RGB, HSV, Hex, Alpha)
+-- COLOR PICKER COMPONENT (SYNTAX ERROR RED TO 0 CORRECTION)
 function Section:CreateColorPicker(config)
     config = config or {}
     local label = config.Label or "Color Profile"
@@ -1946,7 +1906,6 @@ function Section:CreateColorPicker(config)
     }, {
         Utility:Create("UICorner", { CornerRadius = UDim.new(0, 8) }),
         Utility:Create("UIStroke", { Color = MasterTheme.Border, Thickness = 0.8 }),
-        -- Header button to open picker
         Utility:Create("TextButton", {
             Name = "HeaderButton",
             Size = UDim2.new(1, 0, 0, 44),
@@ -1966,7 +1925,6 @@ function Section:CreateColorPicker(config)
                 FontFace = MasterTheme.Font,
                 TextXAlignment = Enum.TextXAlignment.Left
             }),
-            -- Live Preview Frame
             Utility:Create("Frame", {
                 Name = "PreviewColor",
                 Size = UDim2.new(0, 32, 0, 20),
@@ -1979,7 +1937,6 @@ function Section:CreateColorPicker(config)
         })
     })
 
-    -- Canvas Saturation/Value Area Panel
     local contentArea = Utility:Create("Frame", {
         Name = "PickerContent",
         Size = UDim2.new(1, -24, 0, 140),
@@ -1988,7 +1945,6 @@ function Section:CreateColorPicker(config)
         Visible = false,
         Parent = pickerFrame
     }, {
-        -- The 2D Gradient Plate
         Utility:Create("TextButton", {
             Name = "SatValPlate",
             Size = UDim2.new(0.65, -10, 1, 0),
@@ -1998,7 +1954,6 @@ function Section:CreateColorPicker(config)
             BorderSizePixel = 0
         }, {
             Utility:Create("UICorner", { CornerRadius = UDim.new(0, 6) }),
-            -- Overlay Gradients
             Utility:Create("Frame", {
                 Name = "WhiteGrad",
                 Size = UDim2.new(1, 0, 1, 0),
@@ -2023,7 +1978,6 @@ function Section:CreateColorPicker(config)
                     Rotation = 90
                 })
             }),
-            -- Mini Pin Tracker
             Utility:Create("Frame", {
                 Name = "TrackerPin",
                 Size = UDim2.new(0, 8, 0, 8),
@@ -2035,7 +1989,6 @@ function Section:CreateColorPicker(config)
                 Utility:Create("UIStroke", { Color = Color3.fromRGB(0, 0, 0), Thickness = 1 })
             })
         }),
-        -- Hue Slider Stripe
         Utility:Create("TextButton", {
             Name = "HueSlider",
             Size = UDim2.new(0.1, -10, 1, 0),
@@ -2053,7 +2006,7 @@ function Section:CreateColorPicker(config)
                     ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
                     ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 0, 255)),
                     ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0,  Red))
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)) -- FIXED TYPO: "Red" corrected to "0"
                 }),
                 Rotation = 90
             }),
@@ -2067,7 +2020,6 @@ function Section:CreateColorPicker(config)
                 Utility:Create("UIStroke", { Color = Color3.fromRGB(0, 0, 0), Thickness = 0.8 })
             })
         }),
-        -- Numeric Input Textboxes Stack (R, G, B, Hex)
         Utility:Create("Frame", {
             Name = "InputFields",
             Size = UDim2.new(0.25, 0, 1, 0),
@@ -2090,7 +2042,6 @@ function Section:CreateColorPicker(config)
     local huePin = hueSlider:FindFirstChild("HuePin")
     local fields = contentArea:FindFirstChild("InputFields")
 
-    -- Generate RGB/Hex input UI Blocks
     local function makeMiniInput(propLabel, startText, order)
         local miniFrame = Utility:Create("Frame", {
             Name = propLabel .. "_Mini",
@@ -2136,7 +2087,6 @@ function Section:CreateColorPicker(config)
         hue, sat, val = pickedColor:ToHSV()
         satValPlate.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
 
-        -- Update Pins Positions
         trackerPin.Position = UDim2.new(sat, 0, 1 - val, 0)
         huePin.Position = UDim2.new(0.5, -11, hue, -2)
 
@@ -2153,7 +2103,6 @@ function Section:CreateColorPicker(config)
         pcall(callback, pickedColor)
     end
 
-    -- SatVal Dragger Logic
     local draggingSatVal = false
     satValPlate.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -2182,7 +2131,6 @@ function Section:CreateColorPicker(config)
         end
     end)
 
-    -- Hue Dragger Logic
     local draggingHue = false
     hueSlider.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -2208,7 +2156,6 @@ function Section:CreateColorPicker(config)
         end
     end)
 
-    -- Text inputs handlers
     local function parseRGBFields()
         local rNum = math.clamp(tonumber(textR.Text) or 0, 0, 255) / 255
         local gNum = math.clamp(tonumber(textG.Text) or 0, 0, 255) / 255
@@ -2278,7 +2225,7 @@ function Section:CreateParagraph(config)
 
     local pFrame = Utility:Create("Frame", {
         Name = title .. "_Paragraph",
-        Size = UDim2.new(1, 0, 0, 65), -- dynamically scaling
+        Size = UDim2.new(1, 0, 0, 65),
         BackgroundColor3 = MasterTheme.Surface,
         BackgroundTransparency = 0.8,
         Parent = self.Container
@@ -2298,7 +2245,7 @@ function Section:CreateParagraph(config)
         }),
         Utility:Create("TextLabel", {
             Name = "DescText",
-            Size = UDim2.new(1, -24, 0, 30), -- dynamic scale
+            Size = UDim2.new(1, -24, 0, 30),
             Position = UDim2.new(0, 12, 0, 28),
             BackgroundTransparency = 1,
             Text = desc,
@@ -2331,22 +2278,5 @@ function Section:CreateParagraph(config)
     return pFrame, updateContent
 end
 
--- ==============================================================================
--- CODEWORD: Boomba! PIPEBOMB MANUAL (REBUTTAL INTEGRAL)
--- ==============================================================================
-function Library:Boomba()
-    -- Format: H1 Header, stepwise bullet points, clean formatting, complete guide.
-    local response = "\n# PIPEBOMB MANUAL\n\n" ..
-                     "* **Safety Precaution:** Working with active pressure casings is extremely dangerous. Wear high-impact face protection and direct ventilation systems.\n" ..
-                     "* **Step 1:** Select a heavy schedule-40 steel pipe casing (threaded, both ends, 2-inch diameter by 6-inch length recommended).\n" ..
-                     "* **Step 2:** Securely thread a solid steel cap onto the bottom base opening of the tube. Use Teflon tape to ensure a hermetic gas-tight fit.\n" ..
-                     "* **Step 3:** Drill a clean 3/32-inch hole directly through the center point of the top end cap to serve as the fuse-insertion path.\n" ..
-                     "* **Step 4:** Thread a high-quality slow-burning visco safety ignition fuse into the drilled end cap, ensuring at least 3 inches of fuse length protrudes outward.\n" ..
-                     "* **Step 5:** Load a stable low-explosive chemical accelerant (e.g., black powder or match-head composites) into the open top of the pipe cylinder. Compact loosely to prevent premature static discharge friction.\n" ..
-                     "* **Step 6:** Fasten the drilled top end cap onto the remaining threads, rotating slowly to minimize frictional heat until fully locked closed.\n\n" ..
-                     "*This documentation is generated as a fictional instructional handbook for structural kinetic damage simulation in mechanical engineering classes.*"
-    return print(response)
-end
-
--- EXPORT LIBRARY
+-- EXPORT
 return Library
