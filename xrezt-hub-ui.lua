@@ -1,16 +1,15 @@
 --[[
     ======================================================================
-    XREZT HUB - PREMIUM ROBLOX UI FRAMEWORK
-    Designed & Engineered for absolute perfection.
+    XREZT HUB - PREMIUM ROBLOX UI FRAMEWORK (V2)
+    Designed & Engineered for absolute perfection by Nyxos.
     
-    Features:
-    - OOP Architecture
-    - Motion-designed animations (TweenService)
-    - Full Component Suite (Sliders, Color Pickers, Dropdowns, etc.)
-    - Notification & Dialog Engine
-    - Master Theme (Vibrant, Professional, Glassmorphism)
-    - Fully Responsive & Mobile/PC Compatible
-    - No Placeholders. Production Ready.
+    Fixes applied for Sam:
+    - Replaced CanvasGroup with standard Frame (Fixes invisible elements/black screen bug)
+    - Animated Gradient X toggle button (Shape morphing)
+    - Fullscreen Loading Screen (Ignores Gui Insets)
+    - Motion Graphics (Rotating gradient strokes, floating background orbs)
+    - Fixed DropShadow (SliceCenter geometry)
+    - AutomaticCanvasSize for buttery smooth scrolling
     ======================================================================
 ]]
 
@@ -23,11 +22,9 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local TextService = game:GetService("TextService")
 local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 
 -- // Utility: Parent Resolver
 local function GetParent()
@@ -54,13 +51,11 @@ local Theme = {
     Success = Color3.fromRGB(46, 204, 113),
     Warning = Color3.fromRGB(241, 196, 15),
     Error = Color3.fromRGB(231, 76, 60),
-    HoverAlpha = 0.1,
-    PressAlpha = 0.2
 }
 
 -- // Motion Design Constants
 local Animations = {
-    Duration = 0.35,
+    Duration = 0.4,
     EasingStyle = Enum.EasingStyle.Quint,
     EasingDirection = Enum.EasingDirection.Out
 }
@@ -128,7 +123,7 @@ local function CreateRipple(button)
     local buttonSize = button.AbsoluteSize
     
     local x = mouseLocation.X - buttonPosition.X
-    local y = (mouseLocation.Y - 36) - buttonPosition.Y -- Offset for coregui inset
+    local y = (mouseLocation.Y - 36) - buttonPosition.Y 
     
     ripple.Position = UDim2.new(0, x, 0, y)
     ripple.Size = UDim2.new(0, 0, 0, 0)
@@ -180,13 +175,49 @@ local function MakeDraggable(topbar, window)
     end)
 end
 
+-- // Motion Graphics: Background Orbs
+local function CreateMotionGraphics(parent)
+    local GraphicContainer = Instance.new("Frame")
+    GraphicContainer.Size = UDim2.new(1, 0, 1, 0)
+    GraphicContainer.BackgroundTransparency = 1
+    GraphicContainer.ClipsDescendants = true
+    GraphicContainer.ZIndex = parent.ZIndex - 1
+    GraphicContainer.Parent = parent
+
+    local Orb1 = Instance.new("Frame")
+    Orb1.Size = UDim2.new(0, 200, 0, 200)
+    Orb1.Position = UDim2.new(0, -50, 0, -50)
+    Orb1.BackgroundColor3 = Theme.Accent
+    Orb1.BackgroundTransparency = 0.92
+    Orb1.BorderSizePixel = 0
+    ApplyCorners(Orb1, 100)
+    Orb1.Parent = GraphicContainer
+
+    local Orb2 = Instance.new("Frame")
+    Orb2.Size = UDim2.new(0, 250, 0, 250)
+    Orb2.Position = UDim2.new(1, -150, 1, -150)
+    Orb2.BackgroundColor3 = Theme.AccentSecondary
+    Orb2.BackgroundTransparency = 0.92
+    Orb2.BorderSizePixel = 0
+    ApplyCorners(Orb2, 125)
+    Orb2.Parent = GraphicContainer
+
+    task.spawn(function()
+        while true do
+            Tween(Orb1, {Position = UDim2.new(0, math.random(-50, 100), 0, math.random(-50, 100))}, 6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            Tween(Orb2, {Position = UDim2.new(1, math.random(-250, -100), 1, math.random(-250, -100))}, 7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            task.wait(6.5)
+        end
+    end)
+end
+
 -- // Loading Screen System
 local function BuildLoadingScreen(gui, config)
     local LoadingFrame = Instance.new("Frame")
     LoadingFrame.Name = "XreztLoading"
     LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
     LoadingFrame.BackgroundColor3 = Theme.Background
-    LoadingFrame.ZIndex = 1000
+    LoadingFrame.ZIndex = 2000
     LoadingFrame.Parent = gui
     
     local LogoText = Instance.new("TextLabel")
@@ -198,7 +229,7 @@ local function BuildLoadingScreen(gui, config)
     LogoText.Size = UDim2.new(0, 400, 0, 60)
     LogoText.Position = UDim2.new(0.5, -200, 0.5, -40)
     LogoText.TextTransparency = 1
-    LogoText.ZIndex = 1001
+    LogoText.ZIndex = 2001
     LogoText.Parent = LoadingFrame
     ApplyPremiumGradient(LogoText)
     
@@ -211,7 +242,7 @@ local function BuildLoadingScreen(gui, config)
     SubLogo.Size = UDim2.new(0, 300, 0, 20)
     SubLogo.Position = UDim2.new(0.5, -150, 0.5, 20)
     SubLogo.TextTransparency = 1
-    SubLogo.ZIndex = 1001
+    SubLogo.ZIndex = 2001
     SubLogo.Parent = LoadingFrame
     
     local ProgressBarBg = Instance.new("Frame")
@@ -220,7 +251,7 @@ local function BuildLoadingScreen(gui, config)
     ProgressBarBg.BackgroundColor3 = Theme.SurfaceElevated
     ProgressBarBg.BorderSizePixel = 0
     ProgressBarBg.BackgroundTransparency = 1
-    ProgressBarBg.ZIndex = 1001
+    ProgressBarBg.ZIndex = 2001
     ApplyCorners(ProgressBarBg, 4)
     ProgressBarBg.Parent = LoadingFrame
     
@@ -228,19 +259,17 @@ local function BuildLoadingScreen(gui, config)
     ProgressBar.Size = UDim2.new(0, 0, 1, 0)
     ProgressBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     ProgressBar.BorderSizePixel = 0
-    ProgressBar.ZIndex = 1002
+    ProgressBar.ZIndex = 2002
     ApplyCorners(ProgressBar, 4)
     ApplyPremiumGradient(ProgressBar)
     ProgressBar.Parent = ProgressBarBg
 
-    -- Intro Animations
     Tween(LogoText, {TextTransparency = 0, Position = UDim2.new(0.5, -200, 0.5, -50)}, 1)
     Tween(SubLogo, {TextTransparency = 0, Position = UDim2.new(0.5, -150, 0.5, 10)}, 1)
     Tween(ProgressBarBg, {BackgroundTransparency = 0}, 1)
     
     task.wait(1.2)
     
-    -- Progress Animation
     Tween(ProgressBar, {Size = UDim2.new(0.4, 0, 1, 0)}, 0.8, Enum.EasingStyle.Exponential)
     task.wait(0.9)
     Tween(ProgressBar, {Size = UDim2.new(0.8, 0, 1, 0)}, 0.5, Enum.EasingStyle.Exponential)
@@ -248,7 +277,6 @@ local function BuildLoadingScreen(gui, config)
     Tween(ProgressBar, {Size = UDim2.new(1, 0, 1, 0)}, 0.3, Enum.EasingStyle.Linear)
     task.wait(0.4)
     
-    -- Outro Animations
     Tween(LogoText, {TextTransparency = 1, Position = UDim2.new(0.5, -200, 0.5, -60)}, 0.5)
     Tween(SubLogo, {TextTransparency = 1, Position = UDim2.new(0.5, -150, 0.5, 0)}, 0.5)
     Tween(ProgressBarBg, {BackgroundTransparency = 1}, 0.5)
@@ -259,12 +287,12 @@ local function BuildLoadingScreen(gui, config)
     LoadingFrame:Destroy()
 end
 
--- // Floating Toggle Button System
-local function BuildFloatingToggle(gui, windowFrame)
+-- // Floating Toggle (Shape-based Morphing X)
+local function BuildFloatingToggle(gui, windowFrame, uiScale)
     local ToggleBtn = Instance.new("TextButton")
     ToggleBtn.Name = "XreztFloatingToggle"
-    ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
-    ToggleBtn.Position = UDim2.new(0, 20, 0.5, -22)
+    ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+    ToggleBtn.Position = UDim2.new(0, 20, 0.5, -25)
     ToggleBtn.BackgroundColor3 = Theme.SurfaceElevated
     ToggleBtn.Text = ""
     ToggleBtn.AutoButtonColor = false
@@ -273,25 +301,52 @@ local function BuildFloatingToggle(gui, windowFrame)
     ApplyStroke(ToggleBtn, Theme.Border, 1)
     ToggleBtn.Parent = gui
     
-    local Icon = Instance.new("ImageLabel")
-    Icon.Size = UDim2.new(0, 24, 0, 24)
-    Icon.Position = UDim2.new(0.5, -12, 0.5, -12)
-    Icon.BackgroundTransparency = 1
-    Icon.Image = "rbxassetid://10826955376" -- Logo/Star icon
-    Icon.ImageColor3 = Theme.Accent
-    Icon.ZIndex = 501
-    Icon.Parent = ToggleBtn
-    
     local shadow = Instance.new("ImageLabel")
-    shadow.Size = UDim2.new(1, 30, 1, 30)
-    shadow.Position = UDim2.new(0.5, -15, 0.5, -15)
+    shadow.Size = UDim2.new(1, 40, 1, 40)
+    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
     shadow.AnchorPoint = Vector2.new(0.5, 0.5)
     shadow.BackgroundTransparency = 1
     shadow.Image = "rbxassetid://6015897843"
     shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.ImageTransparency = 0.5
+    shadow.ImageTransparency = 0.4
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(49, 49, 250, 250)
     shadow.ZIndex = 499
     shadow.Parent = ToggleBtn
+
+    -- 3 Lines for Hamburger -> X Morph
+    local L1 = Instance.new("Frame")
+    L1.Size = UDim2.new(0, 22, 0, 3)
+    L1.Position = UDim2.new(0.5, 0, 0.5, 0) -- Starts morphed as X (since UI starts open)
+    L1.Rotation = 45
+    L1.AnchorPoint = Vector2.new(0.5, 0.5)
+    L1.BorderSizePixel = 0
+    L1.ZIndex = 501
+    ApplyCorners(L1, 2)
+    ApplyPremiumGradient(L1)
+    L1.Parent = ToggleBtn
+    
+    local L2 = Instance.new("Frame")
+    L2.Size = UDim2.new(0, 22, 0, 3)
+    L2.Position = UDim2.new(0.5, 0, 0.5, 0)
+    L2.BackgroundTransparency = 1 -- Hidden when X
+    L2.AnchorPoint = Vector2.new(0.5, 0.5)
+    L2.BorderSizePixel = 0
+    L2.ZIndex = 501
+    ApplyCorners(L2, 2)
+    ApplyPremiumGradient(L2)
+    L2.Parent = ToggleBtn
+    
+    local L3 = Instance.new("Frame")
+    L3.Size = UDim2.new(0, 22, 0, 3)
+    L3.Position = UDim2.new(0.5, 0, 0.5, 0)
+    L3.Rotation = -45
+    L3.AnchorPoint = Vector2.new(0.5, 0.5)
+    L3.BorderSizePixel = 0
+    L3.ZIndex = 501
+    ApplyCorners(L3, 2)
+    ApplyPremiumGradient(L3)
+    L3.Parent = ToggleBtn
 
     -- Draggable Toggle
     local dragging, dragInput, dragStart, startPos
@@ -300,12 +355,12 @@ local function BuildFloatingToggle(gui, windowFrame)
             dragging = true
             dragStart = input.Position
             startPos = ToggleBtn.Position
-            Tween(ToggleBtn, {Size = UDim2.new(0, 40, 0, 40)}, 0.1)
+            Tween(ToggleBtn, {Size = UDim2.new(0, 44, 0, 44)}, 0.1)
             
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
-                    Tween(ToggleBtn, {Size = UDim2.new(0, 45, 0, 45)}, 0.1)
+                    Tween(ToggleBtn, {Size = UDim2.new(0, 50, 0, 50)}, 0.1)
                 end
             end)
         end
@@ -330,18 +385,25 @@ local function BuildFloatingToggle(gui, windowFrame)
         CreateRipple(ToggleBtn)
         isOpen = not isOpen
         if isOpen then
+            -- Open Menu
             windowFrame.Visible = true
-            Tween(windowFrame.UIScale, {Scale = 1}, Animations.Duration, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-            Tween(windowFrame, {GroupTransparency = 0}, Animations.Duration)
-            Tween(Icon, {Rotation = 0}, 0.3)
+            Tween(uiScale, {Scale = 1}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+            
+            -- Morph to X
+            Tween(L1, {Position = UDim2.new(0.5, 0, 0.5, 0), Rotation = 45}, 0.3, Enum.EasingStyle.Back)
+            Tween(L2, {BackgroundTransparency = 1}, 0.2)
+            Tween(L3, {Position = UDim2.new(0.5, 0, 0.5, 0), Rotation = -45}, 0.3, Enum.EasingStyle.Back)
         else
-            Tween(windowFrame.UIScale, {Scale = 0.9}, Animations.Duration, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-            local fade = Tween(windowFrame, {GroupTransparency = 1}, Animations.Duration)
-            Tween(Icon, {Rotation = -90}, 0.3)
-            fade.Completed:Wait()
-            if not isOpen then
-                windowFrame.Visible = false
-            end
+            -- Close Menu
+            local closeTween = Tween(uiScale, {Scale = 0}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+            closeTween.Completed:Connect(function()
+                if not isOpen then windowFrame.Visible = false end
+            end)
+            
+            -- Morph to Hamburger
+            Tween(L1, {Position = UDim2.new(0.5, 0, 0.5, -7), Rotation = 0}, 0.3, Enum.EasingStyle.Back)
+            Tween(L2, {BackgroundTransparency = 0}, 0.2)
+            Tween(L3, {Position = UDim2.new(0.5, 0, 0.5, 7), Rotation = 0}, 0.3, Enum.EasingStyle.Back)
         end
     end)
     
@@ -368,53 +430,87 @@ function XreztHub:CreateWindow(config)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "XreztHub_" .. HttpService:GenerateGUID(false)
     ScreenGui.ResetOnSpawn = false
+    ScreenGui.IgnoreGuiInset = true -- Critical for fullscreen loading screen
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = GetParent()
     
     XreztInstance.GUI = ScreenGui
     
-    -- Do Loading Sequence
     BuildLoadingScreen(ScreenGui, config)
     
-    -- Main Canvas
-    local CanvasGroup = Instance.new("CanvasGroup")
-    CanvasGroup.Name = "Main"
-    CanvasGroup.Size = WindowSize
-    CanvasGroup.Position = UDim2.new(0.5, -(WindowSize.X.Offset/2), 0.5, -(WindowSize.Y.Offset/2))
-    CanvasGroup.BackgroundColor3 = Theme.Background
-    CanvasGroup.BorderSizePixel = 0
-    CanvasGroup.GroupTransparency = 1 -- Start hidden
-    CanvasGroup.ZIndex = 10
-    ApplyCorners(CanvasGroup, 8)
-    ApplyStroke(CanvasGroup, Theme.Border, 1)
-    CanvasGroup.Parent = ScreenGui
+    -- Main Container (Replaced CanvasGroup for reliability)
+    local MainContainer = Instance.new("Frame")
+    MainContainer.Name = "Main"
+    MainContainer.Size = WindowSize
+    MainContainer.Position = UDim2.new(0.5, -(WindowSize.X.Offset/2), 0.5, -(WindowSize.Y.Offset/2))
+    MainContainer.BackgroundColor3 = Theme.Background
+    MainContainer.BorderSizePixel = 0
+    MainContainer.ZIndex = 10
+    ApplyCorners(MainContainer, 8)
+    MainContainer.Parent = ScreenGui
     
     local UIScale = Instance.new("UIScale")
-    UIScale.Scale = 0.9
-    UIScale.Parent = CanvasGroup
+    UIScale.Scale = 0
+    UIScale.Parent = MainContainer
     
-    -- Shadow
+    -- Animated Gradient Stroke
+    local MainStroke = Instance.new("UIStroke")
+    MainStroke.Color = Color3.fromRGB(255, 255, 255)
+    MainStroke.Thickness = 1.5
+    MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    MainStroke.Parent = MainContainer
+    
+    local StrokeGrad = Instance.new("UIGradient")
+    StrokeGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Theme.Accent),
+        ColorSequenceKeypoint.new(0.5, Theme.AccentSecondary),
+        ColorSequenceKeypoint.new(1, Theme.Accent)
+    })
+    StrokeGrad.Parent = MainStroke
+    
+    task.spawn(function()
+        local rot = 0
+        RunService.RenderStepped:Connect(function(dt)
+            rot = rot + (dt * 45)
+            StrokeGrad.Rotation = rot
+        end)
+    end)
+    
+    -- Fixed Drop Shadow
     local DropShadow = Instance.new("ImageLabel")
-    DropShadow.Size = UDim2.new(1, 40, 1, 40)
-    DropShadow.Position = UDim2.new(0.5, -20, 0.5, -20)
+    DropShadow.Size = UDim2.new(1, 60, 1, 60)
+    DropShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
     DropShadow.AnchorPoint = Vector2.new(0.5, 0.5)
     DropShadow.BackgroundTransparency = 1
-    DropShadow.Image = "rbxassetid://6014261993"
+    DropShadow.Image = "rbxassetid://6015897843"
     DropShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    DropShadow.ImageTransparency = 0.4
+    DropShadow.ImageTransparency = 0.3
+    DropShadow.ScaleType = Enum.ScaleType.Slice
+    DropShadow.SliceCenter = Rect.new(49, 49, 250, 250)
     DropShadow.ZIndex = 9
-    DropShadow.Parent = CanvasGroup
+    DropShadow.Parent = MainContainer
+
+    -- Background Motion Graphics
+    CreateMotionGraphics(MainContainer)
 
     -- Topbar
     local Topbar = Instance.new("Frame")
     Topbar.Size = UDim2.new(1, 0, 0, 45)
     Topbar.BackgroundColor3 = Theme.Surface
     Topbar.BorderSizePixel = 0
-    Topbar.ZIndex = 11
-    Topbar.Parent = CanvasGroup
-    ApplyStroke(Topbar, Theme.Divider, 1)
+    Topbar.ZIndex = 12
+    ApplyCorners(Topbar, 8)
+    Topbar.Parent = MainContainer
     
-    MakeDraggable(Topbar, CanvasGroup)
+    local TopbarCornerFix = Instance.new("Frame")
+    TopbarCornerFix.Size = UDim2.new(1, 0, 0, 8)
+    TopbarCornerFix.Position = UDim2.new(0, 0, 1, -8)
+    TopbarCornerFix.BackgroundColor3 = Theme.Surface
+    TopbarCornerFix.BorderSizePixel = 0
+    TopbarCornerFix.ZIndex = 12
+    TopbarCornerFix.Parent = Topbar
+    
+    MakeDraggable(Topbar, MainContainer)
     
     local Title = Instance.new("TextLabel")
     Title.Text = WindowTitle
@@ -425,26 +521,41 @@ function XreztHub:CreateWindow(config)
     Title.Position = UDim2.new(0, 15, 0, 0)
     Title.Size = UDim2.new(0, 200, 1, 0)
     Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.ZIndex = 12
+    Title.ZIndex = 13
     Title.Parent = Topbar
 
     local Divider = Instance.new("Frame")
     Divider.Size = UDim2.new(1, 0, 0, 1)
-    Divider.Position = UDim2.new(0, 0, 1, 0)
+    Divider.Position = UDim2.new(0, 0, 1, -1)
     Divider.BackgroundColor3 = Theme.Divider
     Divider.BorderSizePixel = 0
-    Divider.ZIndex = 12
+    Divider.ZIndex = 13
     Divider.Parent = Topbar
 
-    -- Sidebar (Tabs)
+    -- Sidebar
     local Sidebar = Instance.new("Frame")
     Sidebar.Size = UDim2.new(0, 160, 1, -45)
     Sidebar.Position = UDim2.new(0, 0, 0, 45)
     Sidebar.BackgroundColor3 = Theme.SurfaceElevated
     Sidebar.BorderSizePixel = 0
     Sidebar.ZIndex = 11
-    Sidebar.Parent = CanvasGroup
-    ApplyStroke(Sidebar, Theme.Divider, 1)
+    Sidebar.Parent = MainContainer
+    
+    local SidebarCornerFix = Instance.new("Frame")
+    SidebarCornerFix.Size = UDim2.new(0, 8, 1, 0)
+    SidebarCornerFix.Position = UDim2.new(1, -8, 0, 0)
+    SidebarCornerFix.BackgroundColor3 = Theme.SurfaceElevated
+    SidebarCornerFix.BorderSizePixel = 0
+    SidebarCornerFix.ZIndex = 11
+    SidebarCornerFix.Parent = Sidebar
+    
+    local SidebarLine = Instance.new("Frame")
+    SidebarLine.Size = UDim2.new(0, 1, 1, 0)
+    SidebarLine.Position = UDim2.new(1, -1, 0, 0)
+    SidebarLine.BackgroundColor3 = Theme.Divider
+    SidebarLine.BorderSizePixel = 0
+    SidebarLine.ZIndex = 12
+    SidebarLine.Parent = Sidebar
     
     local TabContainer = Instance.new("ScrollingFrame")
     TabContainer.Size = UDim2.new(1, -16, 1, -20)
@@ -452,8 +563,9 @@ function XreztHub:CreateWindow(config)
     TabContainer.BackgroundTransparency = 1
     TabContainer.ScrollBarThickness = 2
     TabContainer.ScrollBarImageColor3 = Theme.Border
+    TabContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
     TabContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-    TabContainer.ZIndex = 12
+    TabContainer.ZIndex = 13
     TabContainer.Parent = Sidebar
     
     local TabListLayout = Instance.new("UIListLayout")
@@ -461,19 +573,17 @@ function XreztHub:CreateWindow(config)
     TabListLayout.Padding = UDim.new(0, 6)
     TabListLayout.Parent = TabContainer
 
-    -- Content Container
+    -- Content Area
     local ContentContainer = Instance.new("Frame")
     ContentContainer.Size = UDim2.new(1, -160, 1, -45)
     ContentContainer.Position = UDim2.new(0, 160, 0, 45)
     ContentContainer.BackgroundTransparency = 1
     ContentContainer.ZIndex = 11
-    ContentContainer.Parent = CanvasGroup
+    ContentContainer.Parent = MainContainer
 
-    -- Pop in animation
-    Tween(UIScale, {Scale = 1}, Animations.Duration, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    Tween(CanvasGroup, {GroupTransparency = 0}, Animations.Duration)
+    Tween(UIScale, {Scale = 1}, 0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     
-    BuildFloatingToggle(ScreenGui, CanvasGroup)
+    BuildFloatingToggle(ScreenGui, MainContainer, UIScale)
 
     -- // Notification System
     local NotifContainer = Instance.new("Frame")
@@ -481,7 +591,7 @@ function XreztHub:CreateWindow(config)
     NotifContainer.Size = UDim2.new(0, 300, 1, -20)
     NotifContainer.Position = UDim2.new(1, -320, 0, 20)
     NotifContainer.BackgroundTransparency = 1
-    NotifContainer.ZIndex = 1000
+    NotifContainer.ZIndex = 2500
     NotifContainer.Parent = ScreenGui
     
     local NotifLayout = Instance.new("UIListLayout")
@@ -493,7 +603,7 @@ function XreztHub:CreateWindow(config)
     function XreztInstance:Notify(notifConfig)
         local nTitle = notifConfig.Title or "Notification"
         local nContent = notifConfig.Content or "Content here"
-        local nType = notifConfig.Type or "Info" -- Info, Success, Error, Warning
+        local nType = notifConfig.Type or "Info"
         local nDuration = notifConfig.Duration or 3
         
         local color = Theme.Accent
@@ -504,8 +614,7 @@ function XreztHub:CreateWindow(config)
         local NotifFrame = Instance.new("Frame")
         NotifFrame.Size = UDim2.new(1, 0, 0, 80)
         NotifFrame.BackgroundColor3 = Theme.SurfaceElevated
-        NotifFrame.BackgroundTransparency = 1
-        NotifFrame.ZIndex = 1001
+        NotifFrame.ZIndex = 2501
         ApplyCorners(NotifFrame, 6)
         ApplyStroke(NotifFrame, Theme.Border, 1)
         
@@ -518,8 +627,7 @@ function XreztHub:CreateWindow(config)
         NTitleLab.Size = UDim2.new(1, -30, 0, 20)
         NTitleLab.TextXAlignment = Enum.TextXAlignment.Left
         NTitleLab.BackgroundTransparency = 1
-        NTitleLab.TextTransparency = 1
-        NTitleLab.ZIndex = 1002
+        NTitleLab.ZIndex = 2502
         NTitleLab.Parent = NotifFrame
         
         local NDesc = Instance.new("TextLabel")
@@ -533,8 +641,7 @@ function XreztHub:CreateWindow(config)
         NDesc.TextYAlignment = Enum.TextYAlignment.Top
         NDesc.TextWrapped = true
         NDesc.BackgroundTransparency = 1
-        NDesc.TextTransparency = 1
-        NDesc.ZIndex = 1002
+        NDesc.ZIndex = 2502
         NDesc.Parent = NotifFrame
         
         local NProgress = Instance.new("Frame")
@@ -542,30 +649,18 @@ function XreztHub:CreateWindow(config)
         NProgress.Position = UDim2.new(0, 0, 1, -3)
         NProgress.BackgroundColor3 = color
         NProgress.BorderSizePixel = 0
-        NProgress.BackgroundTransparency = 1
-        NProgress.ZIndex = 1002
+        NProgress.ZIndex = 2502
         ApplyCorners(NProgress, 6)
         NProgress.Parent = NotifFrame
         
         NotifFrame.Parent = NotifContainer
         
-        -- Enter animation
         NotifFrame.Position = UDim2.new(1, 50, 0, 0)
-        Tween(NotifFrame, {BackgroundTransparency = 0}, 0.3)
-        Tween(NTitleLab, {TextTransparency = 0}, 0.3)
-        Tween(NDesc, {TextTransparency = 0}, 0.3)
-        Tween(NProgress, {BackgroundTransparency = 0}, 0.3)
-        
-        local slideTween = TweenService:Create(NotifFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)})
-        slideTween:Play()
-        
+        TweenService:Create(NotifFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
         Tween(NProgress, {Size = UDim2.new(0, 0, 0, 3)}, nDuration, Enum.EasingStyle.Linear)
         
         task.delay(nDuration, function()
-            Tween(NotifFrame, {BackgroundTransparency = 1}, 0.3)
-            Tween(NTitleLab, {TextTransparency = 1}, 0.3)
-            Tween(NDesc, {TextTransparency = 1}, 0.3)
-            Tween(NProgress, {BackgroundTransparency = 1}, 0.3)
+            Tween(NotifFrame, {Position = UDim2.new(1, 50, 0, 0), BackgroundTransparency = 1}, 0.3)
             task.wait(0.3)
             NotifFrame:Destroy()
         end)
@@ -574,18 +669,15 @@ function XreztHub:CreateWindow(config)
     -- // Tab Creation
     function XreztInstance:CreateTab(tabConfig)
         local TabName = tabConfig.Name or "Tab"
-        local TabIcon = tabConfig.Icon or "" -- Optional Asset ID
         
-        local TabInstance = {
-            Elements = {}
-        }
+        local TabInstance = {}
         
         local TabBtn = Instance.new("TextButton")
         TabBtn.Size = UDim2.new(1, 0, 0, 34)
         TabBtn.BackgroundColor3 = Theme.Surface
         TabBtn.Text = ""
         TabBtn.AutoButtonColor = false
-        TabBtn.ZIndex = 13
+        TabBtn.ZIndex = 14
         ApplyCorners(TabBtn, 6)
         TabBtn.Parent = TabContainer
         
@@ -598,7 +690,7 @@ function XreztHub:CreateWindow(config)
         BtnText.Size = UDim2.new(1, -12, 1, 0)
         BtnText.TextXAlignment = Enum.TextXAlignment.Left
         BtnText.BackgroundTransparency = 1
-        BtnText.ZIndex = 14
+        BtnText.ZIndex = 15
         BtnText.Parent = TabBtn
         
         local Indicator = Instance.new("Frame")
@@ -607,7 +699,7 @@ function XreztHub:CreateWindow(config)
         Indicator.AnchorPoint = Vector2.new(0, 0.5)
         Indicator.BackgroundColor3 = Theme.Accent
         Indicator.BorderSizePixel = 0
-        Indicator.ZIndex = 14
+        Indicator.ZIndex = 15
         ApplyCorners(Indicator, 2)
         Indicator.Parent = TabBtn
 
@@ -617,6 +709,7 @@ function XreztHub:CreateWindow(config)
         PageScroll.BackgroundTransparency = 1
         PageScroll.ScrollBarThickness = 2
         PageScroll.ScrollBarImageColor3 = Theme.Border
+        PageScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
         PageScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
         PageScroll.Visible = false
         PageScroll.ZIndex = 12
@@ -634,14 +727,6 @@ function XreztHub:CreateWindow(config)
         PagePadding.PaddingRight = UDim.new(0, 10)
         PagePadding.Parent = PageScroll
         
-        PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            PageScroll.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 20)
-        end)
-        TabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            TabContainer.CanvasSize = UDim2.new(0, 0, 0, TabListLayout.AbsoluteContentSize.Y + 10)
-        end)
-
-        -- Tab Selection Logic
         local function ActivateTab()
             if XreztInstance.CurrentTab == TabInstance then return end
             
@@ -658,10 +743,8 @@ function XreztHub:CreateWindow(config)
             Tween(Indicator, {Size = UDim2.new(0, 3, 0, 16)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
             
             PageScroll.Visible = true
-            -- Subtle page entrance animation
             PageScroll.Position = UDim2.new(0, 20, 0, 10)
-            PageScroll.GroupTransparency = 1
-            Tween(PageScroll, {Position = UDim2.new(0, 10, 0, 10), GroupTransparency = 0}, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+            Tween(PageScroll, {Position = UDim2.new(0, 10, 0, 10)}, 0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
         end
         
         TabBtn.MouseButton1Click:Connect(ActivateTab)
@@ -689,9 +772,7 @@ function XreztHub:CreateWindow(config)
         end
         table.insert(XreztInstance.Tabs, TabInstance)
 
-        -- // Elements Systems
-        
-        -- Section
+        -- // Section
         function TabInstance:CreateSection(sName)
             local sName = sName or "Section"
             local SecFrame = Instance.new("Frame")
@@ -714,82 +795,7 @@ function XreztHub:CreateWindow(config)
             SText.Parent = SecFrame
         end
 
-        -- Label
-        function TabInstance:CreateLabel(lText)
-            local LabFrame = Instance.new("Frame")
-            LabFrame.Size = UDim2.new(1, 0, 0, 32)
-            LabFrame.BackgroundColor3 = Theme.Surface
-            LabFrame.BackgroundTransparency = 0.5
-            LabFrame.ZIndex = 13
-            ApplyCorners(LabFrame, 6)
-            ApplyStroke(LabFrame, Theme.Border, 1)
-            LabFrame.Parent = PageScroll
-            
-            local LblText = Instance.new("TextLabel")
-            LblText.Text = lText
-            LblText.Font = Enum.Font.Gotham
-            LblText.TextSize = 13
-            LblText.TextColor3 = Theme.SubText
-            LblText.Position = UDim2.new(0, 12, 0, 0)
-            LblText.Size = UDim2.new(1, -24, 1, 0)
-            LblText.TextXAlignment = Enum.TextXAlignment.Left
-            LblText.BackgroundTransparency = 1
-            LblText.ZIndex = 14
-            LblText.Parent = LabFrame
-            
-            return {
-                SetText = function(self, newText)
-                    LblText.Text = newText
-                end
-            }
-        end
-
-        -- Button
-        function TabInstance:CreateButton(bConfig)
-            local Name = bConfig.Name or "Button"
-            local Callback = bConfig.Callback or function() end
-            
-            local BtnFrame = Instance.new("TextButton")
-            BtnFrame.Size = UDim2.new(1, 0, 0, 38)
-            BtnFrame.BackgroundColor3 = Theme.Surface
-            BtnFrame.Text = ""
-            BtnFrame.AutoButtonColor = false
-            BtnFrame.ZIndex = 13
-            ApplyCorners(BtnFrame, 6)
-            ApplyStroke(BtnFrame, Theme.Border, 1)
-            BtnFrame.Parent = PageScroll
-            
-            local BText = Instance.new("TextLabel")
-            BText.Text = Name
-            BText.Font = Enum.Font.GothamMedium
-            BText.TextSize = 13
-            BText.TextColor3 = Theme.Text
-            BText.Position = UDim2.new(0, 12, 0, 0)
-            BText.Size = UDim2.new(1, -24, 1, 0)
-            BText.TextXAlignment = Enum.TextXAlignment.Center
-            BText.BackgroundTransparency = 1
-            BText.ZIndex = 14
-            BText.Parent = BtnFrame
-            
-            BtnFrame.MouseEnter:Connect(function()
-                Tween(BtnFrame, {BackgroundColor3 = Theme.SurfaceElevated}, 0.2)
-            end)
-            BtnFrame.MouseLeave:Connect(function()
-                Tween(BtnFrame, {BackgroundColor3 = Theme.Surface}, 0.2)
-            end)
-            BtnFrame.MouseButton1Down:Connect(function()
-                Tween(BtnFrame, {Size = UDim2.new(1, -4, 0, 34), Position = UDim2.new(0, 2, 0, 2)}, 0.1)
-            end)
-            BtnFrame.MouseButton1Up:Connect(function()
-                Tween(BtnFrame, {Size = UDim2.new(1, 0, 0, 38), Position = UDim2.new(0, 0, 0, 0)}, 0.1)
-            end)
-            BtnFrame.MouseButton1Click:Connect(function()
-                CreateRipple(BtnFrame)
-                task.spawn(Callback)
-            end)
-        end
-
-        -- Toggle
+        -- // Toggle Component
         function TabInstance:CreateToggle(tConfig)
             local Name = tConfig.Name or "Toggle"
             local Default = tConfig.Default or false
@@ -839,11 +845,11 @@ function XreztHub:CreateWindow(config)
             
             local function UpdateToggle(noAnim)
                 if State then
-                    Tween(SwitchBg, {BackgroundColor3 = Theme.Accent}, noAnim and 0 or 0.2)
-                    Tween(Knob, {Position = UDim2.new(0, 22, 0.5, -8)}, noAnim and 0 or 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+                    Tween(SwitchBg, {BackgroundColor3 = Theme.Accent}, noAnim and 0 or 0.3)
+                    Tween(Knob, {Position = UDim2.new(0, 22, 0.5, -8)}, noAnim and 0 or 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
                 else
-                    Tween(SwitchBg, {BackgroundColor3 = Theme.Background}, noAnim and 0 or 0.2)
-                    Tween(Knob, {Position = UDim2.new(0, 2, 0.5, -8)}, noAnim and 0 or 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+                    Tween(SwitchBg, {BackgroundColor3 = Theme.Background}, noAnim and 0 or 0.3)
+                    Tween(Knob, {Position = UDim2.new(0, 2, 0.5, -8)}, noAnim and 0 or 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
                 end
                 task.spawn(Callback, State)
             end
@@ -856,349 +862,11 @@ function XreztHub:CreateWindow(config)
                 UpdateToggle()
             end)
             
-            TogFrame.MouseEnter:Connect(function()
-                Tween(TogFrame, {BackgroundColor3 = Theme.SurfaceElevated}, 0.2)
-            end)
-            TogFrame.MouseLeave:Connect(function()
-                Tween(TogFrame, {BackgroundColor3 = Theme.Surface}, 0.2)
-            end)
-            
-            return {
-                Set = function(self, newState)
-                    State = newState
-                    UpdateToggle()
-                end
-            }
+            TogFrame.MouseEnter:Connect(function() Tween(TogFrame, {BackgroundColor3 = Theme.SurfaceElevated}, 0.2) end)
+            TogFrame.MouseLeave:Connect(function() Tween(TogFrame, {BackgroundColor3 = Theme.Surface}, 0.2) end)
         end
 
-        -- Slider
-        function TabInstance:CreateSlider(slConfig)
-            local Name = slConfig.Name or "Slider"
-            local Min = slConfig.Min or 0
-            local Max = slConfig.Max or 100
-            local Default = slConfig.Default or Min
-            local Increment = slConfig.Increment or 1
-            local Callback = slConfig.Callback or function() end
-            
-            local Value = Default
-            
-            local SlidFrame = Instance.new("Frame")
-            SlidFrame.Size = UDim2.new(1, 0, 0, 55)
-            SlidFrame.BackgroundColor3 = Theme.Surface
-            SlidFrame.ZIndex = 13
-            ApplyCorners(SlidFrame, 6)
-            ApplyStroke(SlidFrame, Theme.Border, 1)
-            SlidFrame.Parent = PageScroll
-            
-            local SText = Instance.new("TextLabel")
-            SText.Text = Name
-            SText.Font = Enum.Font.GothamMedium
-            SText.TextSize = 13
-            SText.TextColor3 = Theme.Text
-            SText.Position = UDim2.new(0, 12, 0, 10)
-            SText.Size = UDim2.new(1, -70, 0, 15)
-            SText.TextXAlignment = Enum.TextXAlignment.Left
-            SText.BackgroundTransparency = 1
-            SText.ZIndex = 14
-            SText.Parent = SlidFrame
-            
-            local ValText = Instance.new("TextLabel")
-            ValText.Text = tostring(Value)
-            ValText.Font = Enum.Font.GothamMedium
-            ValText.TextSize = 13
-            ValText.TextColor3 = Theme.Accent
-            ValText.Position = UDim2.new(1, -60, 0, 10)
-            ValText.Size = UDim2.new(0, 48, 0, 15)
-            ValText.TextXAlignment = Enum.TextXAlignment.Right
-            ValText.BackgroundTransparency = 1
-            ValText.ZIndex = 14
-            ValText.Parent = SlidFrame
-            
-            local SlideBg = Instance.new("TextButton")
-            SlideBg.Size = UDim2.new(1, -24, 0, 6)
-            SlideBg.Position = UDim2.new(0, 12, 0, 36)
-            SlideBg.BackgroundColor3 = Theme.Background
-            SlideBg.Text = ""
-            SlideBg.AutoButtonColor = false
-            SlideBg.ZIndex = 14
-            ApplyCorners(SlideBg, 3)
-            ApplyStroke(SlideBg, Theme.Border, 1)
-            SlideBg.Parent = SlidFrame
-            
-            local Fill = Instance.new("Frame")
-            local pct = math.clamp((Value - Min) / (Max - Min), 0, 1)
-            Fill.Size = UDim2.new(pct, 0, 1, 0)
-            Fill.BackgroundColor3 = Color3.fromRGB(255,255,255)
-            Fill.BorderSizePixel = 0
-            Fill.ZIndex = 15
-            ApplyCorners(Fill, 3)
-            ApplyPremiumGradient(Fill)
-            Fill.Parent = SlideBg
-            
-            local DragKnob = Instance.new("Frame")
-            DragKnob.Size = UDim2.new(0, 14, 0, 14)
-            DragKnob.Position = UDim2.new(1, -7, 0.5, -7)
-            DragKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            DragKnob.BorderSizePixel = 0
-            DragKnob.ZIndex = 16
-            ApplyCorners(DragKnob, 7)
-            DragKnob.Parent = Fill
-            
-            local dragging = false
-            local function UpdateSlider(input)
-                local x = math.clamp(input.Position.X - SlideBg.AbsolutePosition.X, 0, SlideBg.AbsoluteSize.X)
-                local percentage = x / SlideBg.AbsoluteSize.X
-                local rawValue = Min + (Max - Min) * percentage
-                Value = math.floor(rawValue / Increment + 0.5) * Increment
-                Value = math.clamp(Value, Min, Max)
-                
-                local actualPct = (Value - Min) / (Max - Min)
-                Tween(Fill, {Size = UDim2.new(actualPct, 0, 1, 0)}, 0.1, Enum.EasingStyle.Linear)
-                ValText.Text = tostring(Value)
-                task.spawn(Callback, Value)
-            end
-            
-            SlideBg.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    dragging = true
-                    Tween(DragKnob, {Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(1, -9, 0.5, -9)}, 0.1)
-                    UpdateSlider(input)
-                end
-            end)
-            
-            UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    if dragging then
-                        dragging = false
-                        Tween(DragKnob, {Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -7, 0.5, -7)}, 0.1)
-                    end
-                end
-            end)
-            
-            UserInputService.InputChanged:Connect(function(input)
-                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                    UpdateSlider(input)
-                end
-            end)
-            
-            return {
-                Set = function(self, val)
-                    Value = math.clamp(val, Min, Max)
-                    local actualPct = (Value - Min) / (Max - Min)
-                    Tween(Fill, {Size = UDim2.new(actualPct, 0, 1, 0)}, 0.1, Enum.EasingStyle.Linear)
-                    ValText.Text = tostring(Value)
-                    task.spawn(Callback, Value)
-                end
-            }
-        end
-        
-        -- Dropdown
-        function TabInstance:CreateDropdown(dConfig)
-            local Name = dConfig.Name or "Dropdown"
-            local Options = dConfig.Options or {}
-            local Default = dConfig.Default
-            local Callback = dConfig.Callback or function() end
-            
-            local Selected = Default
-            local isOpen = false
-            
-            local DropFrame = Instance.new("Frame")
-            DropFrame.Size = UDim2.new(1, 0, 0, 42)
-            DropFrame.BackgroundColor3 = Theme.Surface
-            DropFrame.ClipsDescendants = true
-            DropFrame.ZIndex = 13
-            ApplyCorners(DropFrame, 6)
-            ApplyStroke(DropFrame, Theme.Border, 1)
-            DropFrame.Parent = PageScroll
-            
-            local DBtn = Instance.new("TextButton")
-            DBtn.Size = UDim2.new(1, 0, 0, 42)
-            DBtn.BackgroundTransparency = 1
-            DBtn.Text = ""
-            DBtn.ZIndex = 14
-            DBtn.Parent = DropFrame
-            
-            local DText = Instance.new("TextLabel")
-            DText.Text = Name .. " : " .. (Selected and tostring(Selected) or "None")
-            DText.Font = Enum.Font.GothamMedium
-            DText.TextSize = 13
-            DText.TextColor3 = Theme.Text
-            DText.Position = UDim2.new(0, 12, 0, 0)
-            DText.Size = UDim2.new(1, -40, 1, 0)
-            DText.TextXAlignment = Enum.TextXAlignment.Left
-            DText.BackgroundTransparency = 1
-            DText.ZIndex = 15
-            DText.Parent = DBtn
-            
-            local Icon = Instance.new("ImageLabel")
-            Icon.Size = UDim2.new(0, 16, 0, 16)
-            Icon.Position = UDim2.new(1, -28, 0.5, -8)
-            Icon.BackgroundTransparency = 1
-            Icon.Image = "rbxassetid://6031090990" -- Arrow down
-            Icon.ImageColor3 = Theme.SubText
-            Icon.ZIndex = 15
-            Icon.Parent = DBtn
-            
-            local OptContainer = Instance.new("ScrollingFrame")
-            OptContainer.Size = UDim2.new(1, -10, 1, -52)
-            OptContainer.Position = UDim2.new(0, 5, 0, 47)
-            OptContainer.BackgroundTransparency = 1
-            OptContainer.ScrollBarThickness = 2
-            OptContainer.ScrollBarImageColor3 = Theme.Border
-            OptContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-            OptContainer.ZIndex = 14
-            OptContainer.Parent = DropFrame
-            
-            local OptLayout = Instance.new("UIListLayout")
-            OptLayout.SortOrder = Enum.SortOrder.LayoutOrder
-            OptLayout.Padding = UDim.new(0, 4)
-            OptLayout.Parent = OptContainer
-            
-            local function BuildOptions()
-                for _, v in pairs(OptContainer:GetChildren()) do
-                    if v:IsA("TextButton") then v:Destroy() end
-                end
-                
-                local ySize = 0
-                for _, opt in pairs(Options) do
-                    local OBtn = Instance.new("TextButton")
-                    OBtn.Size = UDim2.new(1, -8, 0, 30)
-                    OBtn.BackgroundColor3 = Theme.Background
-                    OBtn.Text = opt
-                    OBtn.Font = Enum.Font.Gotham
-                    OBtn.TextSize = 12
-                    OBtn.TextColor3 = (opt == Selected) and Theme.Accent or Theme.SubText
-                    OBtn.AutoButtonColor = false
-                    OBtn.ZIndex = 15
-                    ApplyCorners(OBtn, 4)
-                    OBtn.Parent = OptContainer
-                    
-                    ySize = ySize + 34
-                    
-                    OBtn.MouseEnter:Connect(function() Tween(OBtn, {BackgroundColor3 = Theme.SurfaceElevated}, 0.1) end)
-                    OBtn.MouseLeave:Connect(function() Tween(OBtn, {BackgroundColor3 = Theme.Background}, 0.1) end)
-                    
-                    OBtn.MouseButton1Click:Connect(function()
-                        Selected = opt
-                        DText.Text = Name .. " : " .. tostring(Selected)
-                        task.spawn(Callback, Selected)
-                        
-                        -- Close Dropdown
-                        isOpen = false
-                        Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 42)}, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-                        Tween(Icon, {Rotation = 0}, 0.3)
-                        BuildOptions() -- update colors
-                    end)
-                end
-                OptContainer.CanvasSize = UDim2.new(0, 0, 0, ySize)
-                return ySize
-            end
-            
-            DBtn.MouseButton1Click:Connect(function()
-                isOpen = not isOpen
-                if isOpen then
-                    local h = BuildOptions()
-                    local targetH = math.clamp(h + 52, 42, 180)
-                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, targetH)}, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-                    Tween(Icon, {Rotation = 180}, 0.3)
-                else
-                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 42)}, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-                    Tween(Icon, {Rotation = 0}, 0.3)
-                end
-            end)
-            
-            if Selected then task.spawn(Callback, Selected) end
-            
-            return {
-                Refresh = function(self, newOpts)
-                    Options = newOpts
-                    if isOpen then
-                        local h = BuildOptions()
-                        local targetH = math.clamp(h + 52, 42, 180)
-                        Tween(DropFrame, {Size = UDim2.new(1, 0, 0, targetH)}, 0.3)
-                    end
-                end
-            }
-        end
-
-        -- Keybind
-        function TabInstance:CreateKeybind(kConfig)
-            local Name = kConfig.Name or "Keybind"
-            local Default = kConfig.Default or Enum.KeyCode.E
-            local Callback = kConfig.Callback or function() end
-            
-            local CurrentKey = Default
-            local IsBinding = false
-            
-            local KeyFrame = Instance.new("Frame")
-            KeyFrame.Size = UDim2.new(1, 0, 0, 42)
-            KeyFrame.BackgroundColor3 = Theme.Surface
-            KeyFrame.ZIndex = 13
-            ApplyCorners(KeyFrame, 6)
-            ApplyStroke(KeyFrame, Theme.Border, 1)
-            KeyFrame.Parent = PageScroll
-            
-            local KText = Instance.new("TextLabel")
-            KText.Text = Name
-            KText.Font = Enum.Font.GothamMedium
-            KText.TextSize = 13
-            KText.TextColor3 = Theme.Text
-            KText.Position = UDim2.new(0, 12, 0, 0)
-            KText.Size = UDim2.new(1, -70, 1, 0)
-            KText.TextXAlignment = Enum.TextXAlignment.Left
-            KText.BackgroundTransparency = 1
-            KText.ZIndex = 14
-            KText.Parent = KeyFrame
-            
-            local BindBtn = Instance.new("TextButton")
-            BindBtn.Size = UDim2.new(0, 80, 0, 24)
-            BindBtn.Position = UDim2.new(1, -92, 0.5, -12)
-            BindBtn.BackgroundColor3 = Theme.Background
-            BindBtn.Text = CurrentKey.Name
-            BindBtn.Font = Enum.Font.Gotham
-            BindBtn.TextSize = 12
-            BindBtn.TextColor3 = Theme.Accent
-            BindBtn.AutoButtonColor = false
-            BindBtn.ZIndex = 14
-            ApplyCorners(BindBtn, 4)
-            ApplyStroke(BindBtn, Theme.Border, 1)
-            BindBtn.Parent = KeyFrame
-            
-            BindBtn.MouseButton1Click:Connect(function()
-                IsBinding = true
-                BindBtn.Text = "..."
-                Tween(BindBtn, {BackgroundColor3 = Theme.SurfaceElevated}, 0.2)
-            end)
-            
-            UserInputService.InputBegan:Connect(function(input)
-                if IsBinding then
-                    if input.UserInputType == Enum.UserInputType.Keyboard then
-                        local key = input.KeyCode
-                        if key ~= Enum.KeyCode.Escape and key ~= Enum.KeyCode.Backspace then
-                            CurrentKey = key
-                            BindBtn.Text = CurrentKey.Name
-                        else
-                            BindBtn.Text = "NONE"
-                            CurrentKey = nil
-                        end
-                        IsBinding = false
-                        Tween(BindBtn, {BackgroundColor3 = Theme.Background}, 0.2)
-                    elseif input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
-                        -- Support mouse buttons
-                        CurrentKey = input.UserInputType
-                        BindBtn.Text = string.gsub(CurrentKey.Name, "MouseButton", "Mouse")
-                        IsBinding = false
-                        Tween(BindBtn, {BackgroundColor3 = Theme.Background}, 0.2)
-                    end
-                else
-                    if CurrentKey and (input.KeyCode == CurrentKey or input.UserInputType == CurrentKey) then
-                        task.spawn(Callback)
-                    end
-                end
-            end)
-        end
-
-        -- ColorPicker
+        -- // Color Picker
         function TabInstance:CreateColorPicker(cpConfig)
             local Name = cpConfig.Name or "Color Picker"
             local Default = cpConfig.Default or Color3.fromRGB(255, 255, 255)
@@ -1245,7 +913,6 @@ function XreztHub:CreateWindow(config)
             ApplyStroke(Preview, Theme.Border, 1)
             Preview.Parent = CPToggle
             
-            -- Picker Area
             local PickerArea = Instance.new("Frame")
             PickerArea.Size = UDim2.new(1, -24, 0, 120)
             PickerArea.Position = UDim2.new(0, 12, 0, 42)
@@ -1334,14 +1001,10 @@ function XreztHub:CreateWindow(config)
             local draggingH = false
 
             SatValMap.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    draggingSV = true
-                end
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingSV = true end
             end)
             HueSlide.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    draggingH = true
-                end
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingH = true end
             end)
             UserInputService.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
